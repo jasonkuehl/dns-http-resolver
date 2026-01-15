@@ -46,6 +46,18 @@ else:
     # fallback for local/dev (will produce in-memory warning in logs)
     limiter = Limiter(app, key_func=get_remote_address, default_limits=["200 per minute"])
 
+# Default DNS servers available for selection
+DEFAULT_DNS_SERVERS = {
+    "Google Primary": "8.8.8.8",
+    "Google Secondary": "8.8.4.4",
+    "Cloudflare Primary": "1.1.1.1",
+    "Cloudflare Secondary": "1.0.0.1",
+    "Quad9 Primary": "9.9.9.9",
+    "Quad9 Secondary": "149.112.112.112",
+    "OpenDNS Primary": "208.67.222.222",
+    "OpenDNS Secondary": "208.67.220.220",
+}
+
 # DNS servers to query (comma‑separated in ENV). If empty, use system resolver (configure=True).
 DNS_SERVERS = [s.strip() for s in os.environ.get("DNS_SERVERS", "").split(",") if s.strip()]
 USE_SYSTEM_RESOLVER = len(DNS_SERVERS) == 0
@@ -97,12 +109,30 @@ def readme_page():
 def api_resolve():
     domain = request.args.get("domain", "").strip().lower()
     rtype = request.args.get("type", "A").upper()
+    servers_param = request.args.get("servers", "").strip()
+
     if not domain:
         return jsonify({"error": {"code": "BadRequest", "message": "No domain specified"}}), 400
     if not is_valid_domain_input(domain):
         return jsonify({"error": {"code": "BadRequest", "message": "Invalid domain format"}}), 400
 
-    logging.info("Resolve requested: domain=%s type=%s from=%s", domain, rtype, request.remote_addr)
+    # Parse servers parameter (comma-separated list of IPs)
+    # If not provided, use DNS_SERVERS from env or system resolver
+    if servers_param:
+        selected_servers = [s.strip() for s in servers_param.split(",") if s.strip()]
+        # Validate all server IPs
+        for srv in selected_servers:
+            try:
+                ipaddress.ip_address(srv)
+            except ValueError:
+                return jsonify({"error": {"code": "BadRequest", "message": f"Invalid server IP: {srv}"}}), 400
+    else:
+        selected_servers = DNS_SERVERS
+
+    use_system = len(selected_servers) == 0
+
+    logging.info("Resolve requested: domain=%s type=%s servers=%s from=%s",
+                 domain, rtype, selected_servers if not use_system else "system", request.remote_addr)
 
     ALLOWED = {"A","AAAA","MX","NS","CNAME","TXT","SOA","PTR","SRV","ALL"}
     if rtype not in ALLOWED:
@@ -122,9 +152,9 @@ def api_resolve():
             "ttl_remaining": 0,
             "error": None
         }
-        # Use system resolver when server is falsy (fallback) or when configured to use system resolver
+        # Use system resolver when server is falsy
         try:
-            if USE_SYSTEM_RESOLVER or not server:
+            if not server:
                 resolver = dns.resolver.Resolver()  # configure=True reads /etc/resolv.conf
             else:
                 resolver = dns.resolver.Resolver(configure=False)
@@ -182,14 +212,14 @@ def api_resolve():
     # Build task list: if using system resolver, run a single task with server=None
     raw_results = []
     try:
-        with ThreadPoolExecutor(max_workers=min(16, max(1, len(DNS_SERVERS) * len(types)))) as ex:
+        with ThreadPoolExecutor(max_workers=min(16, max(1, len(selected_servers) * len(types)))) as ex:
             futures = []
-            if USE_SYSTEM_RESOLVER:
+            if use_system:
                 for t in types:
                     futures.append(ex.submit(query_server, None, t))
             else:
                 for t in types:
-                    for server in DNS_SERVERS:
+                    for server in selected_servers:
                         futures.append(ex.submit(query_server, server, t))
             for f in as_completed(futures):
                 raw_results.append(f.result())
