@@ -78,6 +78,61 @@
     .status-missing { border-color: #d29922; }
     .status-error { border-color: #f85149; }
 
+    .server-selection {
+      margin-top: 10px;
+      padding: 12px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      text-align: left;
+    }
+
+    .server-selection h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #8b949e;
+    }
+
+    .server-checkboxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .server-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .server-checkbox input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .server-checkbox label {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .custom-server-input {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .custom-server-input input {
+      flex: 1;
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
     .record-section {
       margin-bottom: 24px;
       background: #161b22;
@@ -250,6 +305,15 @@
       <button id="search-btn" type="submit">Search</button>
       <button type="button" id="expandAll">Expand All</button>
     </div>
+
+    <div class="server-selection">
+      <h3>DNS Servers</h3>
+      <div class="server-checkboxes" id="server-checkboxes"></div>
+      <div class="custom-server-input">
+        <input id="custom-server" type="text" placeholder="Custom server IP (e.g., 8.8.8.8)">
+        <button type="button" class="btn-small" id="add-custom-server">Add</button>
+      </div>
+    </div>
   </form>
 
   <input id="filter-box" type="text" placeholder="Filter results...">
@@ -270,6 +334,91 @@
 </div>
 
 <script>
+// Default DNS servers
+const DEFAULT_SERVERS = {
+  "Google Primary": "8.8.8.8",
+  "Google Secondary": "8.8.4.4",
+  "Cloudflare Primary": "1.1.1.1",
+  "Cloudflare Secondary": "1.0.0.1",
+  "Quad9 Primary": "9.9.9.9",
+  "Quad9 Secondary": "149.112.112.112",
+  "OpenDNS Primary": "208.67.222.222",
+  "OpenDNS Secondary": "208.67.220.220"
+};
+
+// Initialize server checkboxes
+function initializeServerCheckboxes() {
+  const container = document.getElementById("server-checkboxes");
+  Object.entries(DEFAULT_SERVERS).forEach(([name, ip]) => {
+    const div = document.createElement("div");
+    div.className = "server-checkbox";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `server-${ip}`;
+    checkbox.value = ip;
+    checkbox.checked = true; // Check all by default
+
+    const label = document.createElement("label");
+    label.htmlFor = `server-${ip}`;
+    label.textContent = `${name} (${ip})`;
+
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    container.appendChild(div);
+  });
+}
+
+// Add custom server
+document.addEventListener("DOMContentLoaded", () => {
+  initializeServerCheckboxes();
+
+  document.getElementById("add-custom-server").onclick = () => {
+    const input = document.getElementById("custom-server");
+    const ip = input.value.trim();
+
+    if (!ip) return;
+
+    // Basic IP validation
+    if (!/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip)) {
+      alert("Please enter a valid IP address");
+      return;
+    }
+
+    // Check if already exists
+    if (document.getElementById(`server-${ip}`)) {
+      alert("This server is already in the list");
+      return;
+    }
+
+    const container = document.getElementById("server-checkboxes");
+    const div = document.createElement("div");
+    div.className = "server-checkbox";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `server-${ip}`;
+    checkbox.value = ip;
+    checkbox.checked = true;
+
+    const label = document.createElement("label");
+    label.htmlFor = `server-${ip}`;
+    label.textContent = `Custom (${ip})`;
+
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    container.appendChild(div);
+
+    input.value = "";
+  };
+});
+
+// Get selected servers
+function getSelectedServers() {
+  const checkboxes = document.querySelectorAll("#server-checkboxes input[type='checkbox']:checked");
+  return Array.from(checkboxes).map(cb => cb.value);
+}
+
 // Format latency object into readable text
 function formatLatency(latencyObj) {
   if (!latencyObj || typeof latencyObj !== "object") return "";
@@ -308,8 +457,9 @@ function highlightDiffLines(jsonStr, diffs) {
 }
 
 // API fetch
-async function fetchDNSData(domain, rtype) {
-  const resp = await fetch(`/api/resolve?domain=${encodeURIComponent(domain)}&type=${rtype}`);
+async function fetchDNSData(domain, rtype, servers) {
+  const serversParam = servers && servers.length > 0 ? `&servers=${servers.join(',')}` : '';
+  const resp = await fetch(`/api/resolve?domain=${encodeURIComponent(domain)}&type=${rtype}${serversParam}`);
   if (!resp.ok) throw new Error(await resp.text());
   return resp.json();
 }
@@ -345,10 +495,11 @@ document.getElementById("resolver-form").onsubmit = async function(e) {
 
   const domain = document.getElementById("domain").value.trim();
   const rtype  = document.getElementById("rtype").value;
+  const selectedServers = getSelectedServers();
   let data;
 
   try {
-    data = await fetchDNSData(domain, rtype);
+    data = await fetchDNSData(domain, rtype, selectedServers);
   } catch (err) {
     spinner.style.display = "none";
     searchBtn.disabled = false;
