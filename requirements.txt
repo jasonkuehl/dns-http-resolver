@@ -1,6 +1,6 @@
 Flask==2.3.2
 dnspython==2.3.0
-gunicorn==20.1.0
+gunicorn==22.0.0
 Flask-Limiter==2.8.0
 Flask-Talisman==1.1.0
 python-dotenv==1.0.0
