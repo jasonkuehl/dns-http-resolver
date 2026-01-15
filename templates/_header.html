@@ -1,76 +1,3 @@
-<!-- templates/_header.html -->
-
-<style>
-  /* Shared responsive header */
-  .nav-container {
-    max-width: 1000px;
-    margin: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: #0d1117;
-    color: #c9d1d9;
-    font-family: Arial, sans-serif;
-  }
-  .nav-left, .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .nav-left img.logo {
-    height: 28px;
-  }
-
-  .nav-link {
-    color: #c9d1d9;
-    text-decoration: none;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .nav-link:hover {
-    color: #fff;
-  }
-
-  .nav-search input {
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid #444;
-    background: #1e1e1e;
-    color: #fff;
-    width: 180px;
-  }
-
-  .hamburger {
-    display: none;
-    cursor: pointer;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .hamburger div {
-    width: 22px;
-    height: 3px;
-    background: #c9d1d9;
-  }
-
-  @media(max-width: 720px) {
-    .nav-left, .nav-search, .nav-right {
-      display: none;
-    }
-    .nav-left.mobile-show,
-    .nav-search.mobile-show,
-    .nav-right.mobile-show {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .hamburger { display: flex; }
-  }
-</style>
-
 <header class="nav-container">
   <div class="nav-left">
     <a href="/" class="nav-link">
@@ -87,9 +14,7 @@
     <input id="global-search" type="text" placeholder="Search site...">
   </div>
 
-  <div class="nav-right">
-    <!-- Placeholder for future icons or actions -->
-  </div>
+  <div class="nav-right"></div>
 
   <div class="hamburger" onclick="
     document.querySelectorAll('.nav-left, .nav-search, .nav-right').forEach(el=>

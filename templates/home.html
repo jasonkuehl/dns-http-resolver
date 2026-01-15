@@ -1,45 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Home — DNS Resolver</title>
-  <style>
-    body { background: #121212; color: #eee; margin: 0; font-family: Arial, sans-serif; }
-    .main-container {
-      padding: 32px 20px;
-      text-align: center;
-      max-width: 900px;
-      margin: auto;
-    }
-    .btn {
-      display: inline-block;
-      margin: 12px;
-      padding: 12px 20px;
-      background: #238636;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-  </style>
+  <title>Home - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-{% include '_header.html' %}
-
-<div class="main-container">
-  <h1>Welcome to DNS Resolver</h1>
-  <p>Inspect DNS results across multiple resolvers with rich visuals, TTL insights, and diff comparisons.</p>
-
-  <a href="/resolve" class="btn">🔍 DNS Resolver</a>
-  <a href="/readme"  class="btn">📖 Documentation</a>
-  <a href="/trace"   class="btn">🧭 DNS Trace</a>
-
-  <p style="margin-top:18px; font-size:14px; color:#aaa;">
-    Try searching right here or use the search above
-  </p>
-</div>
-
-{% include '_footer.html' %}
-
+  {% include '_header.html' %}
+  <main class="main-container">
+    <h1>📖 DNS Resolver Docs</h1>
+    <p>This page documents how to use the DNS Resolver tool.</p>
+    <h2>Resolver Page</h2>
+    <p>Enter a domain and choose a record type (A, AAAA, MX, etc.). Results from different DNS servers will be grouped by identical output. Includes latency, TTL, flags, and DNSSEC status.</p>
+    <h2>Trace Page</h2>
+    <p>Shows the path a DNS query takes from a root server down to the authoritative server. Each step includes answer, authority, and additional sections.</p>
+    <h2>Server Summary</h2>
+    <p>Highlights which DNS servers responded, what they returned, and how fast they were.</p>
+  </main>
+  {% include '_footer.html' %}
 </body>
 </html>

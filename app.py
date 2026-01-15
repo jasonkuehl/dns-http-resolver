@@ -1,5 +1,8 @@
+# New app.py with improved logging and DNSSEC clarity
+
 import os
 import time
+import logging
 import dns.resolver
 import dns.message
 import dns.query
@@ -9,6 +12,7 @@ import dns.exception
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
 # DNS servers to query (comma‑separated in ENV)
 DNS_SERVERS = os.environ.get("DNS_SERVERS", "8.8.8.8,1.1.1.1").split(",")
@@ -79,17 +83,19 @@ def api_resolve():
                         "rd": bool(resp.flags & dns.flags.RD),
                         "ad": bool(resp.flags & dns.flags.AD)
                     }
-                    entry["dnssec"] = "validated" if entry["flags"]["ad"] else "unverified"
-                except Exception:
+                    entry["dnssec"] = "validated" if entry["flags"].get("ad") else "unverified"
+                except Exception as e:
+                    logging.warning(f"DNSSEC parsing failed: {e}")
                     entry["flags"] = {}
-                    entry["dnssec"] = None
+                    entry["dnssec"] = "unknown"
                 try:
                     auth_list = []
                     for rrset in answer.response.authority:
                         for rr in rrset:
                             auth_list.append(rr.to_text())
                     entry["authority"] = auth_list
-                except Exception:
+                except Exception as e:
+                    logging.warning(f"Authority parsing failed: {e}")
                     entry["authority"] = []
             except dns.resolver.NXDOMAIN:
                 entry["error"] = "NXDOMAIN"
@@ -101,6 +107,7 @@ def api_resolve():
                 entry["error"] = "No nameservers"
             except Exception as e:
                 entry["error"] = str(e)
+                logging.error(f"Unexpected error for {domain} type {t} on {server}: {e}")
             raw_results.append(entry)
 
     def normalize_key(r):
@@ -184,7 +191,6 @@ def dns_trace(domain):
                 for rr in rrset:
                     step["additional"].append(rr.to_text())
             trace_steps.append(step)
-            # Pick the first IP in additional for next hop
             next_ip = None
             for rr in r.additional:
                 if rr.rdtype == dns.rdatatype.A:
@@ -193,7 +199,8 @@ def dns_trace(domain):
             if next_ip:
                 servers_to_try.append(next_ip)
             step_count += 1
-        except Exception:
+        except Exception as e:
+            logging.warning(f"Trace stopped at step {step_count}: {e}")
             break
     return trace_steps
 
