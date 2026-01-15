@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DNS Resolver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .logo img {
+      height: 50px;
+    }
+    h1 {
+      color: #fff;
+      margin: 0;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .form-group-inline {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    input, select, button {
+      padding: 8px;
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #filter-box {
+      margin: 10px 0;
+      width: 100%;
+    }
+    .summary-server {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .record-section {
+      margin-bottom: 20px;
+      border: 1px solid #333;
+      padding: 10px;
+      border-radius: 6px;
+      background: #1e1e1e;
+      position: relative;
+    }
+    .record-section h2 {
+      color: #ccc;
+      cursor: pointer;
+      margin: 0;
+    }
+    .record-content {
+      display: none;
+      margin-top: 10px;
+    }
+    pre {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      padding: 15px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .copied-label {
+      position: absolute;
+      top: 12px;
+      right: 60px;
+      background: #0f0;
+      color: #000;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 1;
+      transition: opacity 2s ease-out;
+    }
+    .diff-highlight {
+      background: rgba(255, 0, 0, 0.2);
+    }
+    #loading-spinner {
+      text-align: center;
+      margin-top: 15px;
+      display: none;
+    }
+    #searching-message {
+      display: none;
+      font-size: 18px;
+      color: #ccc;
+      text-align: center;
+      margin-top: 10px;
+      transition: opacity 1s ease-out;
+    }
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top: 2px solid #4caf50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .status-ok { color: #4caf50; }
+    .status-empty { color: #aaa; }
+    .status-missing { color: #ffb300; }
+    .status-error { color: #f55; }
+    .dnssec-info { margin-left: 8px; font-size: 14px; }
+    .error {
+      color: #f55;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      .form-group-inline {
+        flex-direction: column;
+      }
+    }
+    /* TTL bar styling */
+    .ttl-bar-container {
+      height: 8px;
+      background: #444;
+      border-radius: 4px;
+      margin: 4px 0;
+      overflow: hidden;
+    }
+    .ttl-bar {
+      height: 100%;
+      width: 100%;
+      transition: width 1s linear;
+    }
+    .ttl-label {
+      font-size: 12px;
+      margin-left: 8px;
+      opacity: 0.85;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo"><img src="/static/logo.png" alt="Logo"></div>
+    <h1>DNS Resolver</h1>
+  </div>
+
+  <form id="resolver-form" data-dns-servers="">
+    <div class="form-group-inline">
+      <label>Domain:</label>
+      <input id="domain" type="text" required>
+    </div>
+    <div class="form-group-inline">
+      <label>Record Type:</label>
+      <select id="rtype">
+        <option>A</option><option>AAAA</option><option>MX</option>
+        <option>CNAME</option><option>NS</option><option>TXT</option><option>SOA</option>
+        <option>PTR</option><option>SRV</option><option>ALL</option>
+      </select>
+      <button id="search-btn" type="submit">Search</button>
+      <button type="button" id="expandAll">Expand All</button>
+    </div>
+  </form>
+
+  <input id="filter-box" type="text" placeholder="Filter results...">
+
+  <div id="loading-spinner">
+    <svg width="40" height="40" viewBox="0 0 50 50" stroke="#0af">
+      <circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div id="searching-message">
+    <span class="loader"></span><span id="searching-text">Searching…</span>
+  </div>
+
+  <div id="server-summary"></div>
+  <div id="output"></div>
+  <div id="error-message" class="error"></div>
+</div>
+
+<script>
+// TTL Countdown Bar
+function makeTTLBar(initialTTL) {
+  const container = document.createElement("div");
+  container.className = "ttl-bar-container";
+  const bar = document.createElement("div");
+  bar.className = "ttl-bar";
+  container.appendChild(bar);
+  const label = document.createElement("span");
+  label.className = "ttl-label";
+  label.textContent = `${initialTTL}s`;
+  container.appendChild(label);
+
+  let remaining = initialTTL;
+  const interval = setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    const pct = (remaining / initialTTL) * 100;
+    bar.style.width = pct + "%";
+    if (pct > 50) bar.style.background = "#4caf50";
+    else if (pct > 20) bar.style.background = "#ffeb3b";
+    else bar.style.background = "#f44336";
+    label.textContent = `${remaining}s`;
+    if (remaining <= 0) clearInterval(interval);
+  }, 1000);
+
+  return container;
+}
+
+// Highlight diffs
+function highlightDiffLines(jsonStr, diffs) {
+  const lines = jsonStr.split("\n");
+  return lines.map(line => {
+    for (const key of Object.keys(diffs || {})) {
+      if (line.includes(`"${key}":`)) return `<span class="diff-highlight">${line}</span>`;
+    }
+    return line;
+  }).join("\n");
+}
+
+async function fetchDNSData(domain, rtype) {
+  const response = await fetch(`/api/resolve?domain=${encodeURIComponent(domain)}&type=${rtype}`);
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+const searchBtn = document.getElementById("search-btn");
+const spinner = document.getElementById("loading-spinner");
+const searchingMsg = document.getElementById("searching-message");
+const searchingText = document.getElementById("searching-text");
+
+document.getElementById("expandAll").onclick = () =>
+  document.querySelectorAll(".record-content").forEach(el => el.style.display = "block");
+
+document.getElementById("filter-box").oninput = function () {
+  const filter = this.value.toLowerCase();
+  document.querySelectorAll("#output pre").forEach(pre => {
+    const orig = pre.getAttribute("data-original");
+    if (orig) {
+      pre.textContent = orig.split("\n")
+        .filter(line => line.toLowerCase().includes(filter))
+        .join("\n");
+      hljs.highlightElement(pre);
+    }
+  });
+};
+
+document.getElementById("resolver-form").onsubmit = async function(e) {
+  e.preventDefault();
+  document.getElementById("error-message").textContent = "";
+  document.getElementById("server-summary").innerHTML = "";
+  document.getElementById("output").innerHTML = "";
+
+  spinner.style.display = "block";
+  searchingMsg.style.display = "block";
+  searchingMsg.style.opacity = "1";
+  searchingText.textContent = "Searching…";
+  searchBtn.disabled = true;
+
+  const domain = document.getElementById("domain").value.trim();
+  const rtype  = document.getElementById("rtype").value;
+
+  let data;
+  try {
+    data = await fetchDNSData(domain, rtype);
+  } catch (err) {
+    spinner.style.display = "none";
+    searchBtn.disabled = false;
+    searchingText.textContent = "Search complete.";
+    setTimeout(() => {
+      searchingMsg.style.opacity = "0";
+      setTimeout(() => searchingMsg.style.display = "none", 1000);
+    }, 1000);
+    document.getElementById("error-message").textContent = err.message;
+    return;
+  }
+
+  searchBtn.disabled = false;
+  spinner.style.display = "none";
+  searchingText.textContent = "Search complete.";
+  setTimeout(() => {
+    searchingMsg.style.opacity = "0";
+    setTimeout(() => searchingMsg.style.display = "none", 1000);
+  }, 1000);
+
+  const serverInfo = {};
+  data.results.forEach(r => {
+    r.dns_servers.forEach(s => {
+      serverInfo[s] ??= {answers:null,flags:{},authority:[],latency:0,error:null,dnssec:null,ttl_remaining:0};
+      if (r.error) serverInfo[s].error = r.error;
+      else {
+        serverInfo[s].answers   = r.answers;
+        serverInfo[s].flags     = r.flags;
+        serverInfo[s].authority = r.authority;
+        serverInfo[s].latency   = r.latency_ms;
+        serverInfo[s].dnssec    = r.dnssec;
+        serverInfo[s].ttl_remaining = r.ttl_remaining;
+      }
+    });
+  });
+
+  const servers = Object.keys(serverInfo);
+  let summaryHTML = "";
+
+  const allEmpty = servers.every(s =>
+    serverInfo[s].answers !== null && serverInfo[s].answers.length === 0 && !serverInfo[s].error
+  );
+
+  const answerSets = new Set(servers.map(s =>
+    serverInfo[s].answers === null ? "__MISSING__" : JSON.stringify(serverInfo[s].answers.sort())
+  ));
+  const flagSets   = new Set(servers.map(s => JSON.stringify(serverInfo[s].flags)));
+  const authSets   = new Set(servers.map(s => JSON.stringify(serverInfo[s].authority.sort())));
+  const errorSet   = new Set(servers.map(s => serverInfo[s].error ? "ERROR" : "OK"));
+
+  if (allEmpty && errorSet.size === 1) {
+    summaryHTML += `<div class="summary-server">No records found on any server</div>`;
+  } else if (
+    !servers.some(s => serverInfo[s].error) &&
+    answerSets.size === 1 &&
+    flagSets.size   === 1 &&
+    authSets.size   === 1 &&
+    !answerSets.has("__MISSING__")
+  ) {
+    summaryHTML += `<div class="summary-server status-ok">All servers agree</div>`;
+  } else {
+    summaryHTML += `<div class="summary-server status-missing">Servers disagree</div>`;
+    servers.forEach(s => {
+      summaryHTML += `<div class="summary-server status-ok"><strong>${s}</strong></div>`;
+      summaryHTML += `<div id="ttl-summary-${s}"></div>`;
+    });
+  }
+
+  document.getElementById("server-summary").innerHTML = summaryHTML;
+  servers.forEach(s => {
+    const holder = document.getElementById(`ttl-summary-${s}`);
+    if (holder) holder.appendChild(makeTTLBar(serverInfo[s].ttl_remaining));
+  });
+
+  const grouped = {};
+  data.results.forEach(r => {
+    grouped[r.record_type] ??= [];
+    grouped[r.record_type].push(r);
+  });
+
+  if (rtype === "ALL") ["A","AAAA","MX","NS","CNAME","TXT","SOA","PTR","SRV"].forEach(t => grouped[t] ??= []);
+
+  for (const [type, entries] of Object.entries(grouped)) {
+    const section = document.createElement("div");
+    section.className="record-section";
+
+    const header = document.createElement("h2");
+    header.textContent = `Record Type: ${type}`;
+
+    const content = document.createElement("div");
+    content.className="record-content";
+
+    if (entries.length === 0) {
+      const none = document.createElement("div");
+      none.style.color="#ffcc00";
+      none.style.fontStyle="italic";
+      none.textContent = "No records of this type found.";
+      content.appendChild(none);
+    } else {
+      const serverAnswered = new Set();
+      entries.forEach(e => e.dns_servers.forEach(s => serverAnswered.add(s)));
+
+      const missingServers = servers.filter(s => !serverAnswered.has(s));
+      missingServers.forEach(ms => {
+        const miss = document.createElement("div");
+        miss.style.color="#ff4444";
+        miss.style.fontWeight="bold";
+        miss.textContent = `${ms} did not return any record for ${type}`;
+        content.appendChild(miss);
+      });
+
+      const foundCount = entries.reduce((acc,e) => acc + (e.answers?.length||0),0);
+      const countMsg = document.createElement("div");
+      countMsg.style.fontStyle="italic"; countMsg.style.marginBottom="6px";
+      countMsg.textContent=`Found ${foundCount} record${foundCount===1?"":"s"} total across servers.`;
+      content.appendChild(countMsg);
+
+      const allMatch = entries.every((x,i,a) =>
+        JSON.stringify(x.answers)===JSON.stringify(a[0].answers) &&
+        JSON.stringify(x.flags)===JSON.stringify(a[0].flags) &&
+        JSON.stringify(x.authority)===JSON.stringify(a[0].authority)
+      );
+
+      if (allMatch) {
+        const combined = entries[0];
+        const copyBtn = document.createElement("button");
+        copyBtn.className="copy-btn"; copyBtn.textContent="Copy";
+        copyBtn.onclick=(ev)=>{/* copy snippet */};
+        content.appendChild(copyBtn);
+
+        const pre = document.createElement("pre");
+        const raw = JSON.stringify(combined,null,2);
+        pre.dataset.original = raw;
+        pre.innerHTML = hljs.highlight(highlightDiffLines(raw, combined.differences||{}),{language:"json"}).value;
+        content.appendChild(pre);
+        content.style.display="block";
+      } else {
+        entries.forEach(entry => {
+          const wrapper = document.createElement("div");
+          wrapper.style.border="1px solid #444"; wrapper.style.padding="8px";
+          wrapper.style.margin="6px 0"; wrapper.style.position="relative";
+
+          const copyBtn = document.createElement("button");
+          copyBtn.className="copy-btn"; copyBtn.textContent="Copy";
+          copyBtn.onclick = (ev)=>{/* copy snippet */};
+          wrapper.appendChild(copyBtn);
+
+          const pre = document.createElement("pre");
+          pre.dataset.original = JSON.stringify(entry,null,2);
+          pre.innerHTML = hljs.highlight(highlightDiffLines(JSON.stringify(entry,null,2), entry.differences||{}),{language:"json"}).value;
+          wrapper.appendChild(pre);
+          content.appendChild(wrapper);
+        });
+      }
+    }
+
+    header.onclick = ()=>content.style.display = content.style.display==="none"?"block":"none";
+    section.appendChild(header); section.appendChild(content);
+    document.getElementById("output").appendChild(section);
+  }
+};
+</script>
+
+</body>
+</html>

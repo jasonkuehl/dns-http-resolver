@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  dns-resolver:
+    build: .
+    container_name: dns-resolver
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # Optional: keep logs on host
+      - ./logs:/logs
+
+    restart: unless-stopped

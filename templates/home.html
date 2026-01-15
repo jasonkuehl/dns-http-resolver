@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home — DNS Resolver</title>
+  <style>
+    body { background: #121212; color: #eee; margin: 0; font-family: Arial, sans-serif; }
+    .main-container {
+      padding: 32px 20px;
+      text-align: center;
+      max-width: 900px;
+      margin: auto;
+    }
+    .btn {
+      display: inline-block;
+      margin: 12px;
+      padding: 12px 20px;
+      background: #238636;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+{% include '_header.html' %}
+
+<div class="main-container">
+  <h1>Welcome to DNS Resolver</h1>
+  <p>Inspect DNS results across multiple resolvers with rich visuals, TTL insights, and diff comparisons.</p>
+
+  <a href="/resolve" class="btn">🔍 DNS Resolver</a>
+  <a href="/readme"  class="btn">📖 Documentation</a>
+  <a href="/trace"   class="btn">🧭 DNS Trace</a>
+
+  <p style="margin-top:18px; font-size:14px; color:#aaa;">
+    Try searching right here or use the search above
+  </p>
+</div>
+
+{% include '_footer.html' %}
+
+</body>
+</html>

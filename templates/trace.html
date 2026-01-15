@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trace DNS — DNS Resolver</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .main-container {
+      padding: 20px;
+      max-width: 920px;
+      margin: auto;
+    }
+    form#trace-form {
+      background: #161b22;
+      padding: 16px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-group-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+    }
+    input, button {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    button:hover {
+      background: #21262d;
+      cursor: pointer;
+    }
+    #trace-output {
+      margin-top: 20px;
+    }
+    .trace-step {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    .trace-step h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #58a6ff;
+    }
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 12px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    #searching-message {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 16px;
+      color: #8b949e;
+      display: none;
+    }
+    .loader {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #999;
+      border-top: 2px solid #4caf50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .status-error {
+      color: #f85149;
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+{% include '_header.html' %}
+
+<div class="main-container">
+  <h1>DNS Trace</h1>
+  <p>Enter a domain and click <strong>Trace</strong> to see the resolution path from root servers to authoritative servers.</p>
+
+  <form id="trace-form">
+    <div class="form-group-inline">
+      <label>Domain:</label>
+      <input id="trace-domain" type="text" placeholder="example.com" required>
+      <button id="trace-btn" type="submit">Trace</button>
+    </div>
+  </form>
+
+  <div id="searching-message">
+    <span class="loader"></span><span>Tracing DNS…</span>
+  </div>
+
+  <div id="trace-output"></div>
+</div>
+
+{% include '_footer.html' %}
+
+<script>
+document.getElementById("trace-form").onsubmit = async function(e) {
+  e.preventDefault();
+  document.getElementById("trace-output").innerHTML = "";
+  document.getElementById("searching-message").style.display = "block";
+
+  const domain = document.getElementById("trace-domain").value.trim();
+  if (!domain) {
+    document.getElementById("searching-message").style.display = "none";
+    return;
+  }
+
+  let response;
+  try {
+    response = await fetch(`/api/trace?domain=${encodeURIComponent(domain)}`);
+  } catch (err) {
+    document.getElementById("searching-message").style.display = "none";
+    document.getElementById("trace-output").innerHTML = `<div class="status-error">Error: ${err.message}</div>`;
+    return;
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (err) {
+    document.getElementById("searching-message").style.display = "none";
+    document.getElementById("trace-output").innerHTML = `<div class="status-error">Invalid JSON response</div>`;
+    return;
+  }
+
+  document.getElementById("searching-message").style.display = "none";
+
+  if (data.error) {
+    document.getElementById("trace-output").innerHTML = `<div class="status-error">Error: ${data.error}</div>`;
+    return;
+  }
+
+  if (!data.trace || !data.trace.length) {
+    document.getElementById("trace-output").innerHTML = "<div class='status-error'>No trace data found.</div>";
+    return;
+  }
+
+  // Render trace steps
+  const output = document.getElementById("trace-output");
+  data.trace.forEach((step, idx) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "trace-step";
+
+    const title = document.createElement("h3");
+    title.textContent = `Step ${idx + 1}: Server ${step.server}`;
+    wrapper.appendChild(title);
+
+    const codeParts = [];
+
+    if (step.response_code) {
+      codeParts.push(`Response Code: ${step.response_code}`);
+    }
+
+    if (step.answer && step.answer.length) {
+      codeParts.push("\nAnswer:\n" + step.answer.join("\n"));
+    }
+    if (step.authority && step.authority.length) {
+      codeParts.push("\nAuthority:\n" + step.authority.join("\n"));
+    }
+    if (step.additional && step.additional.length) {
+      codeParts.push("\nAdditional:\n" + step.additional.join("\n"));
+    }
+    if (step.error) {
+      codeParts.push(`\nError: ${step.error}`);
+    }
+
+    const pre = document.createElement("pre");
+    pre.textContent = codeParts.join("\n");
+    wrapper.appendChild(pre);
+
+    output.appendChild(wrapper);
+  });
+};
+</script>
+
+</body>
+</html>

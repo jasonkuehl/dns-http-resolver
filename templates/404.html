@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>404 — Page Not Found</title>
+  <style>
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 80px auto;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 64px;
+      margin-bottom: 10px;
+      color: #f85149;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-weight: normal;
+    }
+
+    p {
+      color: #8b949e;
+      margin-bottom: 30px;
+    }
+
+    a.button {
+      display: inline-block;
+      padding: 12px 20px;
+      background: #238636;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 16px;
+      margin: 8px;
+    }
+
+    a.button.secondary {
+      background: #21262d;
+      border: 1px solid #30363d;
+    }
+
+    a.button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+{% include "_header.html" %}
+
+<div class="container">
+  <h1>404</h1>
+  <h2>Page Not Found</h2>
+  <p>The page you’re looking for doesn’t exist or has moved.</p>
+
+  <a href="/" class="button">🏠 Home</a>
+  <a href="/resolve" class="button secondary">🔍 DNS Resolver</a>
+</div>
+
+{% include "_footer.html" %}
+
+</body>
+</html>

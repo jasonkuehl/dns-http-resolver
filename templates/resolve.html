@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DNS Resolver</title>
+
+  <style>
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    .main-container {
+      padding: 24px;
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    form#resolver-form {
+      background: #161b22;
+      padding: 16px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .form-group-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+
+    input, select, button {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+
+    button:hover {
+      background: #21262d;
+    }
+
+    #filter-box {
+      margin-bottom: 20px;
+      width: 100%;
+      padding: 8px;
+      background: #161b22;
+    }
+
+    #server-summary {
+      margin-top: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    .summary-server {
+      padding: 6px;
+      border-left: 4px solid #58a6ff;
+      margin-bottom: 8px;
+      background: #161b22;
+    }
+
+    .status-ok { border-color: #2ea043; }
+    .status-missing { border-color: #d29922; }
+    .status-error { border-color: #f85149; }
+
+    .record-section {
+      margin-bottom: 24px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px;
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      min-width: 1000px; /* Add this to prevent shrinking */
+      max-width: 1000px;
+      margin: 0 auto 24px auto;
+    }
+
+    .record-section h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #c9d1d9;
+      cursor: pointer;
+    }
+
+    .record-content {
+      word-wrap: break-word;
+      overflow-x: auto;
+    }
+
+    .record-content > div {
+      max-width: 100%;
+      overflow-x: auto;
+      box-sizing: border-box;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 12px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      max-width: 100%;
+      word-break: break-word;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #2ea043;
+    }
+
+    .copied-label {
+      position: absolute;
+      top: 10px;
+      right: 80px;
+      background: #0f0;
+      color: #000;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 1;
+      transition: opacity 2s ease-out;
+    }
+
+    .ttl-bar-container {
+      height: 6px;
+      background: #444;
+      border-radius: 4px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .ttl-bar {
+      height: 100%;
+      width: 100%;
+      transition: width 1s linear;
+    }
+
+    .ttl-label {
+      font-size: 12px;
+      margin-left: 8px;
+      color: #8b949e;
+    }
+
+    #searching-message {
+      margin-top: 10px;
+      font-size: 16px;
+      text-align: center;
+      color: #8b949e;
+      display: none;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #999;
+      border-top: 2px solid #4caf50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    #error-message {
+      color: #f85149;
+      font-weight: bold;
+      margin-top: 16px;
+    }
+
+    .diff-highlight {
+      background: rgba(255, 80, 80, 0.15);
+    }
+
+    @media (max-width: 600px) {
+      .form-group-inline {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .copy-btn {
+        top: 10px;
+        right: 10px;
+      }
+
+      .copied-label {
+        top: 36px;
+        right: 10px;
+      }
+    }
+  </style>
+
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+</head>
+<body>
+
+{% include '_header.html' %}
+
+<div class="main-container">
+  <form id="resolver-form">
+    <div class="form-group-inline">
+      <label>Domain:</label>
+      <input id="domain" type="text" required>
+    </div>
+    <div class="form-group-inline">
+      <label>Record Type:</label>
+      <select id="rtype">
+        <option>A</option><option>AAAA</option><option>MX</option>
+        <option>CNAME</option><option>NS</option><option>TXT</option><option>SOA</option>
+        <option>PTR</option><option>SRV</option><option>ALL</option>
+      </select>
+      <button id="search-btn" type="submit">Search</button>
+      <button type="button" id="expandAll">Expand All</button>
+    </div>
+  </form>
+
+  <input id="filter-box" type="text" placeholder="Filter results...">
+
+  <div id="loading-spinner">
+    <svg width="40" height="40" viewBox="0 0 50 50" stroke="#0af">
+      <circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div id="searching-message">
+    <span class="loader"></span><span id="searching-text">Searching…</span>
+  </div>
+
+  <div id="server-summary"></div>
+  <div id="output"></div>
+  <div id="error-message" class="status-error"></div>
+</div>
+
+<script>
+// Format latency object into readable text
+function formatLatency(latencyObj) {
+  if (!latencyObj || typeof latencyObj !== "object") return "";
+  return Object.entries(latencyObj)
+    .map(([server, ms]) => `${server}: ${ms}ms`)
+    .join(", ");
+}
+
+// TTL bar helper
+function makeTTLBar(ttl) {
+  const container = document.createElement("div");
+  container.className = "ttl-bar-container";
+  const bar = document.createElement("div");
+  bar.className = "ttl-bar";
+  container.appendChild(bar);
+  const label = document.createElement("span");
+  label.className = "ttl-label";
+  label.textContent = `${ttl}s`;
+  container.appendChild(label);
+
+  const pct = Math.min((ttl / 86400) * 100, 100);
+  bar.style.width = pct + "%";
+  bar.style.background = pct > 50 ? "#4caf50" : pct > 20 ? "#ffeb3b" : "#f44336";
+  return container;
+}
+
+// Diff highlighting for JSON
+function highlightDiffLines(jsonStr, diffs) {
+  const lines = jsonStr.split("\n");
+  return lines.map(line => {
+    for (const key of Object.keys(diffs||{})) {
+      if (line.includes(`"${key}":`)) return `<span class="diff-highlight">${line}</span>`;
+    }
+    return line;
+  }).join("\n");
+}
+
+// API fetch
+async function fetchDNSData(domain, rtype) {
+  const resp = await fetch(`/api/resolve?domain=${encodeURIComponent(domain)}&type=${rtype}`);
+  if (!resp.ok) throw new Error(await resp.text());
+  return resp.json();
+}
+
+document.getElementById("expandAll").onclick = () =>
+  document.querySelectorAll(".record-content").forEach(el => el.style.display = "block");
+
+document.getElementById("filter-box").oninput = function() {
+  const f = this.value.toLowerCase();
+  document.querySelectorAll("#output pre").forEach(pre => {
+    const orig = pre.getAttribute("data-original");
+    if (orig) {
+      pre.textContent = orig
+        .split("\n").filter(l => l.toLowerCase().includes(f)).join("\n");
+      hljs.highlightElement(pre);
+    }
+  });
+};
+
+document.getElementById("resolver-form").onsubmit = async function(e) {
+  e.preventDefault();
+  document.getElementById("error-message").textContent = "";
+  document.getElementById("server-summary").innerHTML = "";
+  document.getElementById("output").innerHTML = "";
+
+  const spinner = document.getElementById("loading-spinner");
+  const searchingMsg = document.getElementById("searching-message");
+  const searchBtn = document.getElementById("search-btn");
+
+  spinner.style.display = "block";
+  searchingMsg.style.display = "block";
+  searchBtn.disabled = true;
+
+  const domain = document.getElementById("domain").value.trim();
+  const rtype  = document.getElementById("rtype").value;
+  let data;
+
+  try {
+    data = await fetchDNSData(domain, rtype);
+  } catch (err) {
+    spinner.style.display = "none";
+    searchBtn.disabled = false;
+    document.getElementById("error-message").textContent = err.message;
+    return;
+  }
+
+  spinner.style.display = "none";
+  searchBtn.disabled = false;
+
+  // Server summary
+  const serverInfo = {};
+  data.results.forEach(r => {
+    r.dns_servers.forEach(s => {
+      serverInfo[s] = serverInfo[s] || { answers: null, latency: 0, error: null, ttl: null };
+      if (r.error) serverInfo[s].error = r.error;
+      else {
+        serverInfo[s].answers = r.answers;
+        serverInfo[s].latency = r.latency_ms[s] ?? r.latency_ms;
+        serverInfo[s].ttl = r.ttl_remaining;
+      }
+    });
+  });
+  Object.entries(serverInfo).forEach(([s, info]) => {
+    const el = document.createElement("div");
+    el.className = "summary-server " + (info.error ? "status-error" : "status-ok");
+    el.textContent = `${s} — ${info.error ? "Error: " + info.error : "OK (latency: " + info.latency + "ms)"}`;
+    document.getElementById("server-summary").appendChild(el);
+    if (!info.error && info.ttl) {
+      document.getElementById("server-summary").appendChild(makeTTLBar(info.ttl));
+    }
+  });
+
+  // Group by record type then content
+  const grouped = {};
+  data.results.forEach(r => {
+    if (!grouped[r.record_type]) grouped[r.record_type] = [];
+    grouped[r.record_type].push(r);
+  });
+
+  Object.entries(grouped).forEach(([type, entries]) => {
+    const section = document.createElement("div");
+    section.className = "record-section";
+    const header = document.createElement("h2");
+    header.textContent = `Record Type: ${type}`;
+    section.appendChild(header);
+
+    const content = document.createElement("div");
+    content.className = "record-content";
+    section.appendChild(content);
+
+    if (entries.length === 0) {
+      const none = document.createElement("div");
+      none.style.color = "#ffcc00";
+      none.textContent = "No records of this type found.";
+      content.appendChild(none);
+    } else {
+      const uniq = {};
+      entries.forEach(entry => {
+        const key = JSON.stringify({answers: entry.answers, authority: entry.authority, flags: entry.flags});
+        uniq[key] = uniq[key] || { servers: [], entry };
+        uniq[key].servers.push(...entry.dns_servers);
+      });
+      Object.values(uniq).forEach(group => {
+        const w = document.createElement("div");
+        w.style.position = "relative";
+        w.style.border = "1px solid #444";
+        w.style.padding = "8px";
+        w.style.margin = "6px 0";
+
+        const svrLine = document.createElement("div");
+        svrLine.style.fontSize = "13px";
+        svrLine.textContent = `Servers: ${group.servers.join(" / ")}`;
+        w.appendChild(svrLine);
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "Copy";
+        const raw = JSON.stringify(group.entry, null, 2);
+        copyBtn.onclick = ev => {
+          ev.stopPropagation();
+          navigator.clipboard.writeText(raw);
+          const lbl = document.createElement("span");
+          lbl.className = "copied-label";
+          lbl.textContent = "Copied!";
+          w.appendChild(lbl);
+          setTimeout(() => lbl.remove(), 1500);
+        };
+        w.appendChild(copyBtn);
+
+        const pre = document.createElement("pre");
+        pre.setAttribute("data-original", raw);
+        pre.innerHTML = hljs.highlight(highlightDiffLines(raw, group.entry.differences||{}),{language:"json"}).value;
+        w.appendChild(pre);
+
+        content.appendChild(w);
+      });
+      content.style.display = "block"; // auto expand
+    }
+
+    header.onclick = () => { content.style.display = content.style.display === "none" ? "block" : "none"; };
+    document.getElementById("output").appendChild(section);
+  });
+};
+</script>
+
+{% include '_footer.html' %}
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Documentation — DNS Resolver</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+    h1, h2, h3 {
+      color: #58a6ff;
+      margin-top: 1.2em;
+    }
+    p {
+      margin: 0.8em 0;
+      line-height: 1.6;
+    }
+    code, pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      overflow-x: auto;
+    }
+    .section {
+      margin-bottom: 2em;
+    }
+    .example {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    a {
+      color: #58a6ff;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>DNS Resolver Documentation</h1>
+
+  <p>
+    Welcome to the documentation for your DNS Resolver & Trace web app.
+    This page explains what each part of the application does, how to read the output, and how to use the API.
+  </p>
+
+  <!-- --- Overview --- -->
+  <div class="section">
+    <h2>Overview</h2>
+    <p>
+      This application is designed to help you explore DNS resolution,
+      compare results from multiple DNS servers, and understand how a domain name
+      is resolved step‑by‑step from the root servers down to the authoritative servers.
+    </p>
+    <p>
+      You can use the UI to manually enter domains and record types, or you
+      can call the API directly from scripts, CLI tools, or other programs.
+    </p>
+  </div>
+
+  <!-- --- Pages --- -->
+  <div class="section">
+    <h2>Pages & How They Work</h2>
+
+    <h3>Home</h3>
+    <p>
+      This is the starting page of the application. From here you can navigate
+      to the DNS Resolver, DNS Trace, or this documentation page.
+    </p>
+
+    <h3>DNS Resolver (<code>/resolve</code>)</h3>
+    <p>
+      Enter a domain and select a record type (or choose “All”).
+      The app will query multiple configured DNS servers and display the results.
+    </p>
+    <p>
+      The Resolver will:
+      <ul>
+        <li>Compare responses from all DNS servers</li>
+        <li>Show latencies and TTL countdowns</li>
+        <li>Highlight mismatches</li>
+        <li>Show DNSSEC validation statuses (when available)</li>
+      </ul>
+    </p>
+
+    <h3>DNS Trace (<code>/trace</code>)</h3>
+    <p>
+      Shows the DNS resolution path from the root servers to authoritative servers.
+      It displays how each authoritative delegation leads to the next.
+      This is similar in concept to <code>dig +trace</code>, but designed to be
+      easy to read in a browser.
+    </p>
+    <p>
+      Each step shows:
+      <ul>
+        <li><strong>Server:</strong> the IP queried at that level</li>
+        <li><strong>Response Code:</strong> DNS status like <code>NOERROR</code>, <code>NXDOMAIN</code></li>
+        <li><strong>Authority:</strong> nameservers returned</li>
+        <li><strong>Additional:</strong> glue records / IPs returned</li>
+        <li><strong>Answer:</strong> final records if applicable</li>
+      </ul>
+    </p>
+  </div>
+
+  <!-- --- Reading Outputs --- -->
+  <div class="section">
+    <h2>Understanding Output</h2>
+
+    <h3>Resolver Output</h3>
+    <p>
+      When you run a resolve query, you’ll see one section per record type that
+      was returned. Each section contains:
+      <ul>
+        <li><strong>DNS Server:</strong> the resolver IP queried</li>
+        <li><strong>Answers:</strong> the records returned</li>
+        <li><strong>Latency:</strong> how long the server took to respond</li>
+        <li><strong>TTL:</strong> remaining TTL</li>
+        <li><strong>DNSSEC:</strong> validated/unverified — if supported</li>
+      </ul>
+    </p>
+    <div class="example">
+      <h4>Example Resolver Output</h4>
+      <pre>
+{
+  "domain": "example.com",
+  "results": [
+    {
+      "record_type": "A",
+      "dns_servers": ["8.8.8.8"],
+      "answers": ["93.184.216.34"],
+      "latency_ms": 23.41,
+      "ttl_remaining": 3542,
+      "flags": {"aa": false, "ra": true, "rd": true},
+      "dnssec": "validated"
+    },
+    {
+      "record_type": "A",
+      "dns_servers": ["1.1.1.1"],
+      "answers": ["93.184.216.34"],
+      "latency_ms": 29.78,
+      "ttl_remaining": 3540,
+      "flags": {"aa": false, "ra": true, "rd": true},
+      "dnssec": "validated"
+    }
+  ]
+}
+      </pre>
+      <p>
+        In this example both servers agree on the <code>A</code> record — same IP,
+        similar TTL and DNSSEC validated status.
+      </p>
+    </div>
+
+    <h3>Trace Output</h3>
+    <p>
+      The Trace page shows how DNS resolution travels from the root server,
+      then to the TLD server, and finally to the authoritative server.
+    </p>
+    <p>
+      Each trace step typically includes:
+      <ul>
+        <li><strong>Zone:</strong> the portion of the namespace being queried</li>
+        <li><strong>Server:</strong> the IP queried at that step</li>
+        <li><strong>Response Code:</strong> DNS response code (e.g., <code>NOERROR</code>)</li>
+        <li><strong>Answer:</strong> if the server has returned records</li>
+        <li><strong>Authority:</strong> delegation NS records</li>
+        <li><strong>Additional:</strong> glue IPs or related info</li>
+      </ul>
+    </p>
+    <div class="example">
+      <h4>Example Trace Output</h4>
+      <pre>
+Step 1: Root Server 198.41.0.4
+Response Code: NOERROR
+Authority:
+  com. NS a.gtld-servers.net.
+Additional:
+  192.5.6.30
+Step 2: GTLD Server 192.5.6.30
+Response Code: NOERROR
+Authority:
+  example.com. NS ns1.example.net.
+Additional:
+  203.0.113.5
+Step 3: Authoritative Server 203.0.113.5
+Response Code: NOERROR
+Answer:
+  example.com. A 93.184.216.34
+      </pre>
+    </div>
+  </div>
+
+  <!-- --- API Usage --- -->
+  <div class="section">
+    <h2>API Usage</h2>
+    <p>
+      You can also use the REST API directly from scripts or tools like <code>curl</code>.
+    </p>
+
+    <h3>Resolver API</h3>
+    <p>
+      Query one record type:
+    </p>
+    <pre>
+curl "http://localhost:5000/api/resolve?domain=example.com&type=A"
+    </pre>
+
+    <h3>Trace API</h3>
+    <pre>
+curl "http://localhost:5000/api/trace?domain=example.com"
+    </pre>
+  </div>
+
+  <!-- --- Deployment --- -->
+  <div class="section">
+    <h2>Deployment</h2>
+    <p>
+      This app is designed to run inside Docker.
+    </p>
+    <pre>
+docker-compose up --build
+    </pre>
+    <p>
+      Once running, use the web UI or API endpoints on <code>http://localhost:5000</code>.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>
