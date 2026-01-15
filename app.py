@@ -1,4 +1,12 @@
-# New app.py with improved logging and DNSSEC clarity
+"""dns-http-resolver
+
+Lightweight Flask app providing HTTP endpoints to resolve DNS records
+and perform iterative DNS traces. This module contains route handlers,
+validation helpers, and the core DNS query/trace implementations.
+
+The comments and docstrings explain the purpose of each function and
+important blocks of logic for maintainability.
+"""
 
 import os
 import time
@@ -17,6 +25,7 @@ from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 load_dotenv()
 
@@ -64,49 +73,79 @@ USE_SYSTEM_RESOLVER = len(DNS_SERVERS) == 0
 
 # Old strict regex removed; use a permissive validator that accepts IPs, single-label hostnames, and FQDNs.
 def is_valid_domain_input(s: str) -> bool:
+    """Validate that the provided input is a reasonable domain name or IP.
+
+    Accepts IPv4/IPv6 addresses and permissive hostnames/FQDNs. Rejects
+    empty strings, inputs with spaces, or components that exceed DNS limits.
+
+    Args:
+        s: Input string supplied by the user (domain or IP).
+
+    Returns:
+        True if input looks like a valid domain or IP, False otherwise.
+    """
     if not s:
         return False
     s = s.strip()
     if len(s) > 253 or " " in s:
         return False
-    # allow raw IPs
+    # Quickly accept valid IP addresses (IPv4/IPv6)
     try:
         ipaddress.ip_address(s)
         return True
     except ValueError:
         pass
-    # remove trailing dot if present
+
+    # Remove trailing dot (FQDN style) then validate each label
     if s.endswith("."):
         s = s[:-1]
     labels = s.split(".")
     for label in labels:
+        # Enforce DNS label length rules
         if not (1 <= len(label) <= 63):
             return False
+        # Only allow letters, digits, and hyphens in labels
         if not re.match(r"^[A-Za-z0-9-]+$", label):
             return False
+        # Labels must not begin or end with a hyphen
         if label[0] == "-" or label[-1] == "-":
             return False
     return True
 
 @app.route("/")
 def home():
+    """Render the homepage with the resolve UI."""
     return render_template("home.html")
 
 @app.route("/resolve")
 def resolve_page():
+    """Render the manual DNS resolution UI page."""
     return render_template("resolve.html")
 
 @app.route("/trace")
 def trace_page():
+    """Render the DNS trace UI page where users can run iterative traces."""
     return render_template("trace.html")
 
 @app.route("/readme")
 def readme_page():
+    """Show the repository README as an HTML page for convenience."""
     return render_template("readme.html")
 
 @app.route("/api/resolve")
 @limiter.limit("60/minute")
 def api_resolve():
+    """HTTP API endpoint that resolves DNS records.
+
+    Query parameters:
+        - domain: the domain or IP to query (required)
+        - type: DNS record type (default: A)
+        - servers: optional comma-separated list of DNS server IPs to query
+
+    The endpoint validates inputs, runs queries in parallel against the
+    selected servers (or the system resolver), and returns grouped results.
+    """
+
     domain = request.args.get("domain", "").strip().lower()
     rtype = request.args.get("type", "A").upper()
     servers_param = request.args.get("servers", "").strip()
@@ -141,6 +180,7 @@ def api_resolve():
     types = ["A","AAAA","MX","NS","CNAME","TXT","SOA","PTR","SRV"] if rtype == "ALL" else [rtype]
 
     def query_server(server, t):
+        # Prepare a result container for this server/type query
         entry = {
             "record_type": t,
             "dns_servers": [server] if server else [],
@@ -152,26 +192,31 @@ def api_resolve():
             "ttl_remaining": 0,
             "error": None
         }
-        # Use system resolver when server is falsy
+
+        # Select resolver: when server is falsy we use the system resolver
         try:
             if not server:
                 resolver = dns.resolver.Resolver()  # configure=True reads /etc/resolv.conf
             else:
                 resolver = dns.resolver.Resolver(configure=False)
                 resolver.nameservers = [server]
-            # disable caching to honor "no caching" requirement
+
+            # Explicitly disable resolver caching and set short timeouts
             resolver.cache = None
             resolver.timeout = 3
             resolver.lifetime = 3
 
+            # Time the resolution for latency reporting
             start = time.time()
             answer = resolver.resolve(domain, t, raise_on_no_answer=False)
             entry["latency_ms"] = round((time.time() - start) * 1000, 2)
 
+            # Extract answer RRs and TTL when present
             if answer.rrset is not None:
                 entry["answers"] = [rr.to_text() for rr in answer]
                 entry["ttl_remaining"] = answer.rrset.ttl or 0
 
+            # Parse flags and DNSSEC AD bit (if present) from the underlying DNS response
             try:
                 resp = getattr(answer, "response", None)
                 if resp is not None:
@@ -185,6 +230,7 @@ def api_resolve():
             except Exception:
                 logging.debug("Could not parse flags/dnssec", exc_info=True)
 
+            # Collect authority section strings if available
             try:
                 resp = getattr(answer, "response", None)
                 if resp is not None and getattr(resp, "authority", None):
@@ -201,6 +247,7 @@ def api_resolve():
         except dns.resolver.Timeout:
             entry["error"] = "Timeout"
         except dns.resolver.NoAnswer:
+            # Explicitly record empty answer sets
             entry["answers"] = []
         except dns.resolver.NoNameservers:
             entry["error"] = "No nameservers"
@@ -262,6 +309,13 @@ def api_resolve():
 @app.route("/api/trace")
 @limiter.limit("30/minute")
 def api_trace():
+    """Endpoint to perform an iterative DNS trace from root servers to authoritative servers.
+
+    Validates the domain and delegates to `dns_trace` which performs the
+    step-wise UDP queries to root / referral servers, returning the collected
+    trace steps to the caller.
+    """
+
     domain = request.args.get("domain", "").strip().lower()
     if not domain:
         return jsonify({"error": {"code": "BadRequest", "message": "No domain provided"}}), 400
@@ -276,6 +330,14 @@ def api_trace():
         return jsonify({"error": {"code": "ServerError", "message": "Trace failed: " + str(e)}}), 500
 
 def dns_trace(domain):
+    """Perform an iterative DNS trace starting from the root servers.
+
+    The function sends UDP queries to root servers, inspects answer/authority/
+    additional sections, and follows referrals by extracting IPs from the
+    additional section. It returns a list of step dictionaries describing
+    each server interaction.
+    """
+
     trace_steps = []
     ROOT_SERVERS = [
         "198.41.0.4", "199.9.14.201", "192.33.4.12", "199.7.91.13",
@@ -301,8 +363,11 @@ def dns_trace(domain):
             "additional": []
         }
         try:
+            # Build and send an ANY query to the selected server
             q = dns.message.make_query(domain, dns.rdatatype.ANY, use_edns=True)
             r = dns.query.udp(q, server, timeout=3)
+
+            # Record response code and collect answer/authority/additional sections
             step["response_code"] = dns.rcode.to_text(r.rcode())
             for rrset in r.answer:
                 for rr in rrset:
@@ -313,7 +378,10 @@ def dns_trace(domain):
             for rrset in r.additional:
                 for rr in rrset:
                     step["additional"].append(rr.to_text())
+
             trace_steps.append(step)
+
+            # Prefer IPs present in the additional section for the next hop
             next_ip = None
             for rr in r.additional:
                 if rr.rdtype == dns.rdatatype.A:
