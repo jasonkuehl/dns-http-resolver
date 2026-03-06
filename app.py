@@ -620,7 +620,12 @@ def api_reverse():
         return jsonify({"error": {"code": "Timeout", "message": "DNS query timed out"}}), 504
     except Exception as e:
         logging.exception("Reverse lookup failed for ip=%s", ip_addr)
-        return jsonify({"error": {"code": "ServerError", "message": str(e)}}), 500
+        return jsonify({
+            "error": {
+                "code": "ServerError",
+                "message": "An internal server error occurred while processing the reverse DNS lookup."
+            }
+        }), 500
 
 
 # =============================================================================
