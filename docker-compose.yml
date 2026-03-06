@@ -1,15 +1,48 @@
-version: "3.9"
-
 services:
   dns-resolver:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dns-resolver:latest
     container_name: dns-resolver
     ports:
-      - "5000:5000"
+      - "60200:60200"
     env_file:
       - .env
+    environment:
+      - DNS_SERVERS=${DNS_SERVERS:-8.8.8.8,1.1.1.1}
+      - PORT=60200
     volumes:
-      # Optional: keep logs on host
-      - ./logs:/logs
-
+      - ./logs:/app/logs:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:60200/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
+    networks:
+      - dns-net
+
+  # Optional: Redis for rate limiting in production
+  # Uncomment if you need distributed rate limiting
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: dns-resolver-redis
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - dns-net
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+
+networks:
+  dns-net:
+    driver: bridge
+
+# volumes:
+#   redis-data:

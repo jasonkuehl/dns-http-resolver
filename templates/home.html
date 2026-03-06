@@ -1,21 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DNS Resolver - Home</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .hero {
+      text-align: center;
+      padding: 40px 20px 30px;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #58a6ff 0%, #2ea043 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+
+    .quick-lookup {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 40px;
+    }
+
+    .quick-lookup h2 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
+
+    .quick-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .quick-form input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .quick-form select {
+      min-width: 100px;
+    }
+
+    .api-preview {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+
+    .api-preview code {
+      color: var(--accent);
+    }
+  </style>
 </head>
 <body>
   {% include '_header.html' %}
+
   <div class="main-container">
-    <h1>Welcome to DNS Resolver</h1>
-    <p>Use the navigation to open the Resolver, Trace tool, or Documentation.</p>
-    <p>
-      Quick links:
-      <a href="/resolve">Resolver</a> •
-      <a href="/trace">Trace</a> •
-      <a href="/readme">Docs</a>
-    </p>
+    <div class="hero">
+      <h1>🌐 DNS Resolver</h1>
+      <p>
+        A powerful DNS lookup tool with multi-server comparison, DNSSEC validation,
+        and real-time trace visualization. Query multiple DNS providers simultaneously
+        and spot configuration differences instantly.
+      </p>
+    </div>
+
+    <div class="quick-lookup">
+      <h2>⚡ Quick Lookup</h2>
+      <form class="quick-form" action="/resolve" method="get" id="quick-form">
+        <input type="text" id="quick-domain" placeholder="Enter domain (e.g., example.com)" required>
+        <select id="quick-type">
+          <option value="A">A</option>
+          <option value="AAAA">AAAA</option>
+          <option value="MX">MX</option>
+          <option value="NS">NS</option>
+          <option value="TXT">TXT</option>
+          <option value="SOA">SOA</option>
+          <option value="CAA">CAA</option>
+          <option value="ALL">ALL</option>
+        </select>
+        <button type="submit">Lookup</button>
+      </form>
+      <div class="api-preview">
+        <code>curl "https://your-server/api/resolve?domain=example.com&type=A"</code>
+      </div>
+    </div>
   </div>
+
   {% include '_footer.html' %}
+
+  <script>
+    document.getElementById('quick-form').onsubmit = function(e) {
+      e.preventDefault();
+      const domain = document.getElementById('quick-domain').value.trim();
+      const type = document.getElementById('quick-type').value;
+      if (domain) {
+        window.location.href = `/resolve?domain=${encodeURIComponent(domain)}&type=${type}`;
+      }
+    };
+  </script>
 </body>
 </html>

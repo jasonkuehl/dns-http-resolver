@@ -6,8 +6,23 @@
     </a>
     <a href="/" class="nav-link"><span>🏠</span>Home</a>
     <a href="/resolve" class="nav-link"><span>🔍</span>Resolver</a>
-    <a href="/readme" class="nav-link"><span>📖</span>Docs</a>
     <a href="/trace" class="nav-link"><span>🧭</span>Trace</a>
+    
+    <div class="nav-dropdown">
+      <a href="#" class="nav-link dropdown-toggle"><span>🛠️</span>Tools ▾</a>
+      <div class="dropdown-menu">
+        <a href="/email-security">📧 Email Security</a>
+        <a href="/propagation">🌍 Propagation</a>
+        <a href="/blacklist">🚫 Blacklist Check</a>
+        <a href="/security-audit">🔒 Security Audit</a>
+        <div class="dropdown-divider"></div>
+        <a href="/subdomain-scan">🔎 Subdomain Scanner</a>
+        <a href="/dns-diff">⚖️ DNS Diff</a>
+        <a href="/zone-info">📋 Zone Info</a>
+      </div>
+    </div>
+    
+    <a href="/readme" class="nav-link"><span>📖</span>Docs</a>
   </div>
 
   <div class="nav-search">
@@ -24,3 +39,63 @@
     <div></div><div></div><div></div>
   </div>
 </header>
+
+<style>
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 100;
+  padding: 8px 0;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 10px 16px;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.dropdown-menu a:hover {
+  background: var(--bg-panel-alt);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 8px 0;
+}
+
+.nav-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+@media (max-width: 800px) {
+  .dropdown-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding-left: 20px;
+  }
+  
+  .nav-dropdown:hover .dropdown-menu {
+    display: none;
+  }
+  
+  .nav-dropdown.mobile-show .dropdown-menu {
+    display: block;
+  }
+}
+</style>

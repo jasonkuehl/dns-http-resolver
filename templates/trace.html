@@ -1,98 +1,190 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DNS Trace</title>
   <link rel="stylesheet" href="/static/css/style.css">
   
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-    .main-container {
-      padding: 20px;
-      max-width: 920px;
-      margin: auto;
-    }
-    form#trace-form {
-      background: #161b22;
-      padding: 16px;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    .form-group-inline {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      justify-content: center;
-    }
-    input, button {
-      padding: 8px 12px;
-      font-size: 14px;
-      border: 1px solid #30363d;
-      border-radius: 4px;
-      background: #0d1117;
-      color: #c9d1d9;
-    }
-    button:hover {
-      background: #21262d;
-      cursor: pointer;
-    }
     #trace-output {
       margin-top: 20px;
     }
+
     .trace-step {
-      background: #161b22;
-      border: 1px solid #30363d;
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 15px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      position: relative;
     }
+
+    .trace-step::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: 100%;
+      width: 2px;
+      height: 16px;
+      background: var(--border-subtle);
+    }
+
+    .trace-step:last-child::before {
+      display: none;
+    }
+
+    .trace-step.authoritative {
+      border-left-color: var(--accent-ok);
+    }
+
+    .trace-step.error {
+      border-left-color: var(--accent-error);
+    }
+
+    .trace-step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .trace-step h3 {
       margin: 0;
       font-size: 16px;
-      color: #58a6ff;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    pre {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      padding: 12px;
-      white-space: pre-wrap;
-      font-family: monospace;
+
+    .trace-step h3 .step-num {
+      background: var(--accent);
+      color: var(--bg-main);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .trace-meta {
+      display: flex;
+      gap: 12px;
       font-size: 13px;
-      overflow-x: auto;
+      color: var(--text-muted);
     }
+
+    .trace-meta .badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .badge-ok {
+      background: rgba(46, 160, 67, 0.2);
+      color: var(--accent-ok);
+    }
+
+    .badge-auth {
+      background: rgba(88, 166, 255, 0.2);
+      color: var(--accent);
+    }
+
+    .badge-error {
+      background: rgba(248, 81, 73, 0.2);
+      color: var(--accent-error);
+    }
+
+    .trace-section {
+      margin-top: 12px;
+    }
+
+    .trace-section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .trace-records {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .trace-record {
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .trace-record:last-child {
+      border-bottom: none;
+    }
+
+    .trace-record .type {
+      color: var(--accent);
+      font-weight: bold;
+      min-width: 50px;
+      display: inline-block;
+    }
+
+    .trace-record .ttl {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
     #searching-message {
       text-align: center;
-      margin-top: 15px;
-      font-size: 16px;
-      color: #8b949e;
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--bg-panel);
+      border-radius: 8px;
       display: none;
     }
-    .loader {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid #999;
-      border-top: 2px solid #4caf50;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
+
+    .trace-summary {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
     }
+
+    .summary-stat {
+      text-align: center;
+    }
+
+    .summary-stat .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .summary-stat .label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
-    }
-    .status-error {
-      color: #f85149;
-      font-weight: bold;
-      margin-top: 10px;
-      text-align: center;
     }
   </style>
 </head>
@@ -101,8 +193,8 @@
 {% include '_header.html' %}
 
 <div class="main-container">
-  <h1>DNS Trace</h1>
-  <p>Enter a domain and click <strong>Trace</strong> to see the resolution path from root servers to authoritative servers.</p>
+  <h1>🧭 DNS Trace</h1>
+  <p>Enter a domain and click <strong>Trace</strong> to visualize the DNS resolution path from root servers to authoritative nameservers.</p>
 
   <form id="trace-form">
     <div class="form-group-inline">
@@ -113,9 +205,11 @@
   </form>
 
   <div id="searching-message">
-    <span class="loader"></span><span>Tracing DNS…</span>
+    <span class="loader"></span>
+    <span>Tracing DNS resolution path…</span>
   </div>
 
+  <div id="trace-summary" style="display: none;"></div>
   <div id="trace-output"></div>
 </div>
 
@@ -125,6 +219,7 @@
 document.getElementById("trace-form").onsubmit = async function(e) {
   e.preventDefault();
   document.getElementById("trace-output").innerHTML = "";
+  document.getElementById("trace-summary").style.display = "none";
   document.getElementById("searching-message").style.display = "block";
 
   const domain = document.getElementById("trace-domain").value.trim();
@@ -154,7 +249,7 @@ document.getElementById("trace-form").onsubmit = async function(e) {
   document.getElementById("searching-message").style.display = "none";
 
   if (data.error) {
-    document.getElementById("trace-output").innerHTML = `<div class="status-error">Error: ${data.error}</div>`;
+    document.getElementById("trace-output").innerHTML = `<div class="status-error">Error: ${data.error.message || data.error}</div>`;
     return;
   }
 
@@ -163,38 +258,149 @@ document.getElementById("trace-form").onsubmit = async function(e) {
     return;
   }
 
+  // Calculate summary stats
+  const totalSteps = data.trace.length;
+  const totalLatency = data.trace.reduce((sum, s) => sum + (s.latency_ms || 0), 0);
+  const hasAuth = data.trace.some(s => s.is_authoritative);
+  const hasErrors = data.trace.some(s => s.error);
+
+  // Render summary
+  const summaryEl = document.getElementById("trace-summary");
+  summaryEl.innerHTML = `
+    <div class="trace-summary">
+      <div class="summary-stat">
+        <div class="value">${totalSteps}</div>
+        <div class="label">Hops</div>
+      </div>
+      <div class="summary-stat">
+        <div class="value">${totalLatency.toFixed(0)}ms</div>
+        <div class="label">Total Time</div>
+      </div>
+      <div class="summary-stat">
+        <div class="value">${hasAuth ? '✅' : '⏳'}</div>
+        <div class="label">${hasAuth ? 'Resolved' : 'Incomplete'}</div>
+      </div>
+    </div>
+  `;
+  summaryEl.style.display = "block";
+
   // Render trace steps
   const output = document.getElementById("trace-output");
   data.trace.forEach((step, idx) => {
     const wrapper = document.createElement("div");
-    wrapper.className = "trace-step";
+    wrapper.className = "trace-step" + (step.is_authoritative ? " authoritative" : "") + (step.error ? " error" : "");
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "trace-step-header";
 
     const title = document.createElement("h3");
-    title.textContent = `Step ${idx + 1}: Server ${step.server}`;
-    wrapper.appendChild(title);
+    title.innerHTML = `<span class="step-num">${step.step}</span> ${step.server_name || step.server}`;
+    header.appendChild(title);
 
-    const codeParts = [];
+    const meta = document.createElement("div");
+    meta.className = "trace-meta";
 
+    if (step.latency_ms) {
+      meta.innerHTML += `<span>${step.latency_ms}ms</span>`;
+    }
     if (step.response_code) {
-      codeParts.push(`Response Code: ${step.response_code}`);
+      const badgeClass = step.response_code === "NOERROR" ? "badge-ok" : "badge-error";
+      meta.innerHTML += `<span class="badge ${badgeClass}">${step.response_code}</span>`;
     }
-
-    if (step.answer && step.answer.length) {
-      codeParts.push("\nAnswer:\n" + step.answer.join("\n"));
-    }
-    if (step.authority && step.authority.length) {
-      codeParts.push("\nAuthority:\n" + step.authority.join("\n"));
-    }
-    if (step.additional && step.additional.length) {
-      codeParts.push("\nAdditional:\n" + step.additional.join("\n"));
+    if (step.is_authoritative) {
+      meta.innerHTML += `<span class="badge badge-auth">AUTHORITATIVE</span>`;
     }
     if (step.error) {
-      codeParts.push(`\nError: ${step.error}`);
+      meta.innerHTML += `<span class="badge badge-error">ERROR</span>`;
+    }
+    header.appendChild(meta);
+    wrapper.appendChild(header);
+
+    // Server IP
+    if (step.server_name && step.server_name !== step.server) {
+      const ipLine = document.createElement("div");
+      ipLine.style.fontSize = "13px";
+      ipLine.style.color = "var(--text-muted)";
+      ipLine.style.marginBottom = "12px";
+      ipLine.textContent = `IP: ${step.server}`;
+      wrapper.appendChild(ipLine);
     }
 
-    const pre = document.createElement("pre");
-    pre.textContent = codeParts.join("\n");
-    wrapper.appendChild(pre);
+    // Error message
+    if (step.error) {
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "status-error";
+      errorDiv.style.marginTop = "8px";
+      errorDiv.textContent = step.error;
+      wrapper.appendChild(errorDiv);
+    }
+
+    // Answer section
+    if (step.answer && step.answer.length) {
+      const section = document.createElement("div");
+      section.className = "trace-section";
+      section.innerHTML = `<div class="trace-section-title">Answer (${step.answer.length})</div>`;
+
+      const records = document.createElement("div");
+      records.className = "trace-records";
+      step.answer.forEach(rec => {
+        const recordDiv = document.createElement("div");
+        recordDiv.className = "trace-record";
+        if (typeof rec === 'object') {
+          recordDiv.innerHTML = `<span class="type">${rec.type}</span> ${rec.data} <span class="ttl">TTL: ${rec.ttl}</span>`;
+        } else {
+          recordDiv.textContent = rec;
+        }
+        records.appendChild(recordDiv);
+      });
+      section.appendChild(records);
+      wrapper.appendChild(section);
+    }
+
+    // Authority section
+    if (step.authority && step.authority.length) {
+      const section = document.createElement("div");
+      section.className = "trace-section";
+      section.innerHTML = `<div class="trace-section-title">Authority (${step.authority.length})</div>`;
+
+      const records = document.createElement("div");
+      records.className = "trace-records";
+      step.authority.forEach(rec => {
+        const recordDiv = document.createElement("div");
+        recordDiv.className = "trace-record";
+        if (typeof rec === 'object') {
+          recordDiv.innerHTML = `<span class="type">${rec.type}</span> ${rec.name} → ${rec.data}`;
+        } else {
+          recordDiv.textContent = rec;
+        }
+        records.appendChild(recordDiv);
+      });
+      section.appendChild(records);
+      wrapper.appendChild(section);
+    }
+
+    // Additional section
+    if (step.additional && step.additional.length) {
+      const section = document.createElement("div");
+      section.className = "trace-section";
+      section.innerHTML = `<div class="trace-section-title">Additional / Glue (${step.additional.length})</div>`;
+
+      const records = document.createElement("div");
+      records.className = "trace-records";
+      step.additional.forEach(rec => {
+        const recordDiv = document.createElement("div");
+        recordDiv.className = "trace-record";
+        if (typeof rec === 'object') {
+          recordDiv.innerHTML = `<span class="type">${rec.type}</span> ${rec.name} → ${rec.data}`;
+        } else {
+          recordDiv.textContent = rec;
+        }
+        records.appendChild(recordDiv);
+      });
+      section.appendChild(records);
+      wrapper.appendChild(section);
+    }
 
     output.appendChild(wrapper);
   });

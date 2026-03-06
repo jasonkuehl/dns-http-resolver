@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS Diff - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .diff-form {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 12px;
+      background: var(--bg-main);
+      border: 2px solid var(--border-subtle);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .mode-btn.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .mode-btn .icon {
+      font-size: 1.5rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .server-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .server-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .server-card-header {
+      padding: 12px 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .server-card-header.google { background: #4285f433; color: #4285f4; }
+    .server-card-header.cloudflare { background: #f6821f33; color: #f6821f; }
+    .server-card-header.quad9 { background: #3fb95033; color: #3fb950; }
+    .server-card-header.opendns { background: #ff6b3533; color: #ff6b35; }
+
+    .server-card-body {
+      padding: 16px;
+    }
+
+    .record-item {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .record-item:last-child {
+      border-bottom: none;
+    }
+
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .match-badge.match { background: #2ea04333; color: #3fb950; }
+    .match-badge.diff { background: #f8514933; color: #f85149; }
+
+    .diff-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .diff-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .diff-item {
+      padding: 12px;
+      background: var(--bg-main);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .diff-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .diff-record {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .present-in {
+      font-size: 12px;
+      color: #3fb950;
+    }
+
+    .missing-from {
+      font-size: 12px;
+      color: #f85149;
+    }
+
+    .domain-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .domain-compare {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .domain-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .domain-card-header {
+      padding: 12px 16px;
+      font-weight: 600;
+      background: var(--bg-panel-alt);
+    }
+
+    .domain-card-body {
+      padding: 16px;
+    }
+
+    .comparison-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .summary-item {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+    }
+
+    .summary-item .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .summary-item .label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .summary-item.common .value { color: #3fb950; }
+    .summary-item.only1 .value { color: #58a6ff; }
+    .summary-item.only2 .value { color: #f6821f; }
+
+    .info-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .info-box h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>⚖️ DNS Diff</h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">
+      Compare DNS records between domains or across different DNS servers.
+    </p>
+
+    <div class="diff-form">
+      <div class="mode-toggle">
+        <div class="mode-btn active" data-mode="server" onclick="setMode('server')">
+          <span class="icon">🖥️</span>
+          Compare Across Servers
+        </div>
+        <div class="mode-btn" data-mode="domain" onclick="setMode('domain')">
+          <span class="icon">🔀</span>
+          Compare Two Domains
+        </div>
+      </div>
+
+      <form id="diffForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="domain1" id="domain1Label">Domain</label>
+            <input type="text" id="domain1" placeholder="example.com" required>
+          </div>
+          <div class="form-group" id="domain2Group" style="display: none;">
+            <label for="domain2">Domain 2</label>
+            <input type="text" id="domain2" placeholder="example.org">
+          </div>
+          <div class="form-group" style="max-width: 150px;">
+            <label for="recordType">Record Type</label>
+            <select id="recordType">
+              <option value="A">A</option>
+              <option value="AAAA">AAAA</option>
+              <option value="MX">MX</option>
+              <option value="NS">NS</option>
+              <option value="TXT">TXT</option>
+              <option value="CNAME">CNAME</option>
+              <option value="SOA">SOA</option>
+              <option value="CAA">CAA</option>
+            </select>
+          </div>
+          <button type="submit" id="compareBtn">⚖️ Compare</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      ⏳ Comparing DNS records...
+    </div>
+
+    <div id="serverResults" style="display: none;">
+      <div id="matchStatus"></div>
+      <div class="server-grid" id="serverGrid"></div>
+      <div id="differences"></div>
+    </div>
+
+    <div id="domainResults" style="display: none;">
+      <div class="domain-compare" id="domainCompare"></div>
+      <div class="comparison-summary" id="comparisonSummary"></div>
+      <div id="comparisonDetails"></div>
+    </div>
+
+    <div class="info-box">
+      <h4>ℹ️ Use Cases</h4>
+      <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: var(--text-muted);">
+        <li><strong>Server Comparison:</strong> Verify DNS propagation, detect cache poisoning, troubleshoot resolution issues</li>
+        <li><strong>Domain Comparison:</strong> Compare configs between domains, audit DNS migrations, check competitor setup</li>
+      </ul>
+    </div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    let currentMode = 'server';
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      
+      const domain2Group = document.getElementById('domain2Group');
+      const domain1Label = document.getElementById('domain1Label');
+      
+      if (mode === 'domain') {
+        domain2Group.style.display = 'block';
+        domain1Label.textContent = 'Domain 1';
+      } else {
+        domain2Group.style.display = 'none';
+        domain1Label.textContent = 'Domain';
+      }
+      
+      document.getElementById('serverResults').style.display = 'none';
+      document.getElementById('domainResults').style.display = 'none';
+    }
+
+    document.getElementById('diffForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const domain1 = document.getElementById('domain1').value.trim();
+      const domain2 = document.getElementById('domain2').value.trim();
+      const recordType = document.getElementById('recordType').value;
+      
+      if (!domain1) return;
+      
+      const btn = document.getElementById('compareBtn');
+      const loading = document.getElementById('loading');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Comparing...';
+      loading.style.display = 'block';
+      document.getElementById('serverResults').style.display = 'none';
+      document.getElementById('domainResults').style.display = 'none';
+      
+      try {
+        let url = `/api/dns-diff?domain1=${encodeURIComponent(domain1)}&type=${recordType}`;
+        if (currentMode === 'domain' && domain2) {
+          url += `&domain2=${encodeURIComponent(domain2)}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error.message);
+        }
+        
+        if (data.mode === 'server_comparison') {
+          displayServerResults(data);
+        } else {
+          displayDomainResults(data);
+        }
+        
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚖️ Compare';
+        loading.style.display = 'none';
+      }
+    });
+
+    function displayServerResults(data) {
+      const container = document.getElementById('serverResults');
+      container.style.display = 'block';
+      
+      // Match status
+      const matchStatus = document.getElementById('matchStatus');
+      if (data.all_match) {
+        matchStatus.innerHTML = '<div class="match-badge match">✅ All Servers Match</div>';
+      } else {
+        matchStatus.innerHTML = '<div class="match-badge diff">⚠️ Differences Found</div>';
+      }
+      
+      // Server cards
+      const grid = document.getElementById('serverGrid');
+      const serverColors = {
+        'Google': 'google',
+        'Cloudflare': 'cloudflare',
+        'Quad9': 'quad9',
+        'OpenDNS': 'opendns'
+      };
+      
+      grid.innerHTML = Object.entries(data.servers).map(([name, result]) => {
+        const colorClass = Object.entries(serverColors).find(([k]) => name.includes(k))?.[1] || '';
+        
+        return `
+          <div class="server-card">
+            <div class="server-card-header ${colorClass}">
+              🖥️ ${name}
+            </div>
+            <div class="server-card-body">
+              ${result.success ? `
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                  ${result.count} records • TTL: ${result.ttl || 'N/A'}s
+                </div>
+                ${result.records.map(r => `
+                  <div class="record-item">${typeof r === 'object' ? JSON.stringify(r) : r}</div>
+                `).join('')}
+              ` : `
+                <div style="color: #f85149;">❌ ${result.error}</div>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Differences
+      const diff = document.getElementById('differences');
+      if (data.differences && data.differences.length > 0) {
+        diff.innerHTML = `
+          <div class="diff-section">
+            <h3>⚠️ Differences</h3>
+            ${data.differences.map(d => `
+              <div class="diff-item">
+                <div class="diff-record">${d.record}</div>
+                <div class="present-in">✅ Present in: ${d.present_in.join(', ')}</div>
+                <div class="missing-from">❌ Missing from: ${d.missing_from.join(', ')}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        diff.innerHTML = '';
+      }
+    }
+
+    function displayDomainResults(data) {
+      const container = document.getElementById('domainResults');
+      container.style.display = 'block';
+      
+      // Domain cards
+      const compare = document.getElementById('domainCompare');
+      compare.innerHTML = `
+        <div class="domain-card">
+          <div class="domain-card-header" style="background: #388bfd33; color: #58a6ff;">
+            📌 ${data.domain1.name}
+          </div>
+          <div class="domain-card-body">
+            ${data.domain1.success ? 
+              data.domain1.records.map(r => `<div class="record-item">${typeof r === 'object' ? JSON.stringify(r) : r}</div>`).join('') :
+              `<div style="color: #f85149;">❌ ${data.domain1.error}</div>`
+            }
+          </div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-card-header" style="background: #f6821f33; color: #f6821f;">
+            📌 ${data.domain2.name}
+          </div>
+          <div class="domain-card-body">
+            ${data.domain2.success ? 
+              data.domain2.records.map(r => `<div class="record-item">${typeof r === 'object' ? JSON.stringify(r) : r}</div>`).join('') :
+              `<div style="color: #f85149;">❌ ${data.domain2.error}</div>`
+            }
+          </div>
+        </div>
+      `;
+      
+      // Summary
+      const summary = document.getElementById('comparisonSummary');
+      summary.innerHTML = `
+        <div class="summary-item common">
+          <div class="value">${data.comparison.common.length}</div>
+          <div class="label">Common</div>
+        </div>
+        <div class="summary-item only1">
+          <div class="value">${data.comparison.only_in_domain1.length}</div>
+          <div class="label">Only in ${data.domain1.name}</div>
+        </div>
+        <div class="summary-item only2">
+          <div class="value">${data.comparison.only_in_domain2.length}</div>
+          <div class="label">Only in ${data.domain2.name}</div>
+        </div>
+      `;
+      
+      // Details
+      const details = document.getElementById('comparisonDetails');
+      let html = '';
+      
+      if (data.comparison.common.length > 0) {
+        html += `<div class="diff-section"><h3>✅ Common Records</h3>
+          ${data.comparison.common.map(r => `<div class="record-item">${r}</div>`).join('')}
+        </div>`;
+      }
+      
+      if (data.comparison.only_in_domain1.length > 0) {
+        html += `<div class="diff-section"><h3>📌 Only in ${data.domain1.name}</h3>
+          ${data.comparison.only_in_domain1.map(r => `<div class="record-item">${r}</div>`).join('')}
+        </div>`;
+      }
+      
+      if (data.comparison.only_in_domain2.length > 0) {
+        html += `<div class="diff-section"><h3>📌 Only in ${data.domain2.name}</h3>
+          ${data.comparison.only_in_domain2.map(r => `<div class="record-item">${r}</div>`).join('')}
+        </div>`;
+      }
+      
+      details.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

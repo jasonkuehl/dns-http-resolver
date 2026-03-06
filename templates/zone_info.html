@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zone Info - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .zone-form {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .summary-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .summary-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .summary-card-header {
+      padding: 12px 16px;
+      font-weight: 600;
+      background: var(--bg-panel-alt);
+    }
+
+    .summary-card-body {
+      padding: 16px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .status-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .status-item {
+      text-align: center;
+      padding: 12px;
+    }
+
+    .status-icon {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .services-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .service-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #3fb95033;
+      color: #3fb950;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .record-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .record-card.not-found {
+      opacity: 0.5;
+    }
+
+    .record-card-header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel-alt);
+    }
+
+    .record-type {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .record-count {
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .record-count.zero {
+      background: var(--text-muted);
+    }
+
+    .record-card-body {
+      padding: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .record-item {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      word-break: break-all;
+    }
+
+    .record-item:last-child {
+      border-bottom: none;
+    }
+
+    .soa-table {
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .soa-table td {
+      padding: 4px 0;
+    }
+
+    .soa-table td:first-child {
+      color: var(--text-muted);
+      width: 100px;
+    }
+
+    .mx-record {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mx-priority {
+      background: #388bfd33;
+      color: #58a6ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .ttl-badge {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .info-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .info-box h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--text-muted);
+    }
+
+    .no-records {
+      color: var(--text-muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>📋 Zone Info</h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">
+      Complete DNS record overview for any domain with service detection.
+    </p>
+
+    <div class="zone-form">
+      <form id="zoneForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="domain">Domain Name</label>
+            <input type="text" id="domain" placeholder="example.com" required>
+          </div>
+          <button type="submit" id="queryBtn">🔍 Query Zone</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      ⏳ Querying all DNS record types...
+    </div>
+
+    <div id="results" style="display: none;">
+      <div class="summary-row">
+        <div class="summary-card">
+          <div class="summary-card-header">📊 Zone Summary</div>
+          <div class="summary-card-body">
+            <div class="status-grid" id="statusGrid"></div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-header">🔌 Detected Services</div>
+          <div class="summary-card-body">
+            <div class="services-list" id="servicesList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="record-grid" id="recordGrid"></div>
+    </div>
+
+    <div class="info-box">
+      <h4>ℹ️ About Zone Info</h4>
+      <p style="margin: 0; font-size: 14px; color: var(--text-muted);">
+        This tool queries all common DNS record types (A, AAAA, NS, MX, TXT, SOA, CAA, CNAME, SRV, DNSKEY, DS) 
+        to provide a comprehensive overview of a domain's DNS configuration. It also detects common services 
+        based on TXT records (Google Workspace, Microsoft 365, etc.).
+      </p>
+    </div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    document.getElementById('zoneForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const domain = document.getElementById('domain').value.trim();
+      if (!domain) return;
+      
+      const btn = document.getElementById('queryBtn');
+      const loading = document.getElementById('loading');
+      const results = document.getElementById('results');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Querying...';
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      
+      try {
+        const response = await fetch(`/api/zone-info?domain=${encodeURIComponent(domain)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error.message);
+        }
+        
+        displayResults(data);
+        results.style.display = 'block';
+        
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Query Zone';
+        loading.style.display = 'none';
+      }
+    });
+
+    function displayResults(data) {
+      // Status grid
+      const status = document.getElementById('statusGrid');
+      status.innerHTML = `
+        <div class="status-item">
+          <div class="status-icon">${data.summary.has_ipv4 ? '✅' : '❌'}</div>
+          <div class="status-label">IPv4</div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon">${data.summary.has_ipv6 ? '✅' : '❌'}</div>
+          <div class="status-label">IPv6</div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon">${data.summary.has_mail ? '✅' : '❌'}</div>
+          <div class="status-label">Mail</div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon">${data.summary.has_dnssec ? '✅' : '❌'}</div>
+          <div class="status-label">DNSSEC</div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon">${data.summary.has_caa ? '✅' : '❌'}</div>
+          <div class="status-label">CAA</div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon" style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${data.summary.nameserver_count}</div>
+          <div class="status-label">NS Records</div>
+        </div>
+      `;
+      
+      // Services
+      const services = document.getElementById('servicesList');
+      if (data.services_detected && data.services_detected.length > 0) {
+        services.innerHTML = data.services_detected.map(s => 
+          `<span class="service-badge">${s}</span>`
+        ).join('');
+      } else {
+        services.innerHTML = '<span style="color: var(--text-muted); font-size: 14px;">No common services detected</span>';
+      }
+      
+      // Record cards
+      const grid = document.getElementById('recordGrid');
+      const icons = {
+        A: '🌐', AAAA: '🌐', NS: '🖥️', MX: '📧', TXT: '📝',
+        SOA: '👑', CAA: '🔒', CNAME: '🔗', SRV: '⚙️', DNSKEY: '🔑', DS: '🛡️'
+      };
+      
+      grid.innerHTML = Object.entries(data.records).map(([type, info]) => {
+        const icon = icons[type] || '📄';
+        
+        let content;
+        if (!info.found) {
+          content = '<div class="no-records">No records found</div>';
+        } else if (type === 'SOA' && info.records.length > 0) {
+          const soa = info.records[0];
+          content = `
+            <table class="soa-table">
+              <tr><td>Primary NS</td><td>${soa.mname}</td></tr>
+              <tr><td>Email</td><td>${soa.rname}</td></tr>
+              <tr><td>Serial</td><td>${soa.serial}</td></tr>
+              <tr><td>Refresh</td><td>${soa.refresh}s</td></tr>
+              <tr><td>Retry</td><td>${soa.retry}s</td></tr>
+              <tr><td>Expire</td><td>${soa.expire}s</td></tr>
+            </table>
+          `;
+        } else if (type === 'MX') {
+          content = info.records.map(r => `
+            <div class="record-item mx-record">
+              <span class="mx-priority">${r.priority}</span>
+              <span>${r.host}</span>
+            </div>
+          `).join('');
+        } else if (type === 'SRV') {
+          content = info.records.map(r => `
+            <div class="record-item">
+              ${r.priority}/${r.weight} → ${r.target}:${r.port}
+            </div>
+          `).join('');
+        } else {
+          content = info.records.map(r => `
+            <div class="record-item">${typeof r === 'object' ? JSON.stringify(r) : r}</div>
+          `).join('');
+        }
+        
+        return `
+          <div class="record-card ${info.found ? '' : 'not-found'}">
+            <div class="record-card-header">
+              <span class="record-type">${icon} ${type}</span>
+              <span class="record-count ${info.count === 0 ? 'zero' : ''}">${info.count}</span>
+            </div>
+            <div class="record-card-body">
+              ${content}
+              ${info.ttl ? `<div class="ttl-badge">TTL: ${info.ttl}s</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Security Analyzer - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .security-score {
+      text-align: center;
+      padding: 30px;
+      background: var(--bg-panel);
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .score-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .score-excellent { background: linear-gradient(135deg, #2ea043, #3fb950); color: #fff; }
+    .score-good { background: linear-gradient(135deg, #58a6ff, #388bfd); color: #fff; }
+    .score-fair { background: linear-gradient(135deg, #d29922, #e3b341); color: #000; }
+    .score-poor { background: linear-gradient(135deg, #f85149, #da3633); color: #fff; }
+
+    .record-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .record-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+
+    .record-card .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .badge-found { background: rgba(46, 160, 67, 0.2); color: var(--accent-ok); }
+    .badge-missing { background: rgba(248, 81, 73, 0.2); color: var(--accent-error); }
+
+    .record-raw {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      word-break: break-all;
+      margin-top: 12px;
+    }
+
+    .analysis-list {
+      margin-top: 12px;
+    }
+
+    .analysis-item {
+      display: flex;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 14px;
+    }
+
+    .analysis-item:last-child { border-bottom: none; }
+
+    .analysis-key {
+      color: var(--text-muted);
+      min-width: 120px;
+    }
+
+    .warning-list {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(210, 153, 34, 0.1);
+      border-radius: 6px;
+    }
+
+    .warning-item {
+      color: var(--accent-warn);
+      padding: 4px 0;
+      font-size: 14px;
+    }
+
+    .recommendations {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .recommendations h3 {
+      margin: 0 0 12px;
+    }
+
+    .recommendations ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .recommendations li {
+      padding: 6px 0;
+      color: var(--text-muted);
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .mx-record {
+      display: flex;
+      gap: 12px;
+      padding: 8px;
+      background: var(--bg-main);
+      border-radius: 4px;
+      margin-top: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+    }
+
+    .mx-priority {
+      color: var(--accent);
+      min-width: 30px;
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>📧 Email Security Analyzer</h1>
+    <p>Check SPF, DKIM, and DMARC records to analyze email authentication and security for any domain.</p>
+
+    <form id="email-form">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input type="text" id="domain" placeholder="example.com" required>
+      </div>
+      <div class="form-group-inline">
+        <label>DKIM Selector (optional):</label>
+        <input type="text" id="dkim-selector" placeholder="google, selector1, default...">
+        <button type="submit">Analyze</button>
+      </div>
+    </form>
+
+    <div id="loading">
+      <span class="loader"></span>
+      <p>Analyzing email security records...</p>
+    </div>
+
+    <div id="results" style="display: none;"></div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    document.getElementById('email-form').onsubmit = async function(e) {
+      e.preventDefault();
+      const domain = document.getElementById('domain').value.trim();
+      const dkimSelector = document.getElementById('dkim-selector').value.trim();
+      const resultsDiv = document.getElementById('results');
+      const loading = document.getElementById('loading');
+
+      resultsDiv.style.display = 'none';
+      resultsDiv.innerHTML = '';
+      loading.style.display = 'block';
+
+      try {
+        let url = `/api/email-security?domain=${encodeURIComponent(domain)}`;
+        if (dkimSelector) url += `&dkim_selector=${encodeURIComponent(dkimSelector)}`;
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+          resultsDiv.innerHTML = `<div class="status-error">${data.error.message}</div>`;
+          resultsDiv.style.display = 'block';
+          return;
+        }
+
+        // Build results HTML
+        let html = '';
+
+        // Score
+        const scoreClass = data.score >= 80 ? 'score-excellent' : data.score >= 60 ? 'score-good' : data.score >= 40 ? 'score-fair' : 'score-poor';
+        html += `
+          <div class="security-score">
+            <div class="score-circle ${scoreClass}">${data.score}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">Email Security Score</div>
+            <div style="color: var(--text-muted);">${data.domain}</div>
+          </div>
+        `;
+
+        // SPF Card
+        html += `
+          <div class="record-card">
+            <h3>
+              🛡️ SPF Record
+              <span class="status-badge ${data.spf.found ? 'badge-found' : 'badge-missing'}">
+                ${data.spf.found ? 'Found' : 'Missing'}
+              </span>
+            </h3>
+        `;
+        if (data.spf.found && data.spf.analysis) {
+          const spf = data.spf.analysis;
+          html += `<div class="record-raw">${spf.raw}</div>`;
+          html += `<div class="analysis-list">`;
+          html += `<div class="analysis-item"><span class="analysis-key">All Mechanism:</span><span>${spf.all_mechanism || 'None'}</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">Includes:</span><span>${spf.includes.length} domains</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">IP4 Ranges:</span><span>${spf.ip4.length}</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">IP6 Ranges:</span><span>${spf.ip6.length}</span></div>`;
+          html += `</div>`;
+          if (spf.warnings && spf.warnings.length > 0) {
+            html += `<div class="warning-list">`;
+            spf.warnings.forEach(w => html += `<div class="warning-item">⚠️ ${w}</div>`);
+            html += `</div>`;
+          }
+        }
+        html += `</div>`;
+
+        // DMARC Card
+        html += `
+          <div class="record-card">
+            <h3>
+              🔐 DMARC Record
+              <span class="status-badge ${data.dmarc.found ? 'badge-found' : 'badge-missing'}">
+                ${data.dmarc.found ? 'Found' : 'Missing'}
+              </span>
+            </h3>
+        `;
+        if (data.dmarc.found && data.dmarc.analysis) {
+          const dmarc = data.dmarc.analysis;
+          html += `<div class="record-raw">${dmarc.raw}</div>`;
+          html += `<div class="analysis-list">`;
+          html += `<div class="analysis-item"><span class="analysis-key">Policy:</span><span>${dmarc.policy || 'None'}</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">Subdomain Policy:</span><span>${dmarc.subdomain_policy || 'Inherit'}</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">Percentage:</span><span>${dmarc.pct}%</span></div>`;
+          html += `<div class="analysis-item"><span class="analysis-key">Report URIs:</span><span>${dmarc.rua.length} aggregate, ${dmarc.ruf.length} forensic</span></div>`;
+          html += `</div>`;
+          if (dmarc.warnings && dmarc.warnings.length > 0) {
+            html += `<div class="warning-list">`;
+            dmarc.warnings.forEach(w => html += `<div class="warning-item">⚠️ ${w}</div>`);
+            html += `</div>`;
+          }
+        }
+        html += `</div>`;
+
+        // DKIM Card
+        html += `
+          <div class="record-card">
+            <h3>
+              🔑 DKIM Record
+              <span class="status-badge ${data.dkim.found ? 'badge-found' : 'badge-missing'}">
+                ${data.dkim.found ? 'Found' : data.dkim.selector ? 'Not Found' : 'Selector Required'}
+              </span>
+            </h3>
+        `;
+        if (data.dkim.found) {
+          html += `<div class="record-raw">${data.dkim.record}</div>`;
+        } else if (!data.dkim.selector) {
+          html += `<p style="color: var(--text-muted);">Enter a DKIM selector to check (common: google, selector1, selector2, default, k1)</p>`;
+        }
+        html += `</div>`;
+
+        // MX Records Card
+        html += `
+          <div class="record-card">
+            <h3>
+              📬 MX Records
+              <span class="status-badge ${data.mx.found ? 'badge-found' : 'badge-missing'}">
+                ${data.mx.found ? `${data.mx.records.length} Found` : 'None'}
+              </span>
+            </h3>
+        `;
+        if (data.mx.found) {
+          data.mx.records.forEach(mx => {
+            html += `<div class="mx-record"><span class="mx-priority">${mx.priority}</span><span>${mx.host}</span></div>`;
+          });
+        }
+        html += `</div>`;
+
+        // Recommendations
+        if (data.recommendations && data.recommendations.length > 0) {
+          html += `
+            <div class="recommendations">
+              <h3>💡 Recommendations</h3>
+              <ul>
+                ${data.recommendations.map(r => `<li>${r}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+      } catch (err) {
+        loading.style.display = 'none';
+        resultsDiv.innerHTML = `<div class="status-error">Error: ${err.message}</div>`;
+        resultsDiv.style.display = 'block';
+      }
+    };
+  </script>
+</body>
+</html>

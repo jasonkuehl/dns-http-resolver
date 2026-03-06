@@ -1,6 +1,19 @@
-Flask==2.3.2
-dnspython==2.6.1
-gunicorn==22.0.0
-Flask-Limiter==2.8.0
-Flask-Talisman==1.1.0
-python-dotenv==1.0.0
+# Core Flask framework
+Flask>=2.3.0,<3.0.0
+Werkzeug>=2.3.0,<4.0.0
+
+# DNS resolution
+dnspython>=2.6.0,<3.0.0
+
+# Production WSGI server
+gunicorn>=22.0.0,<24.0.0
+
+# Security and rate limiting
+Flask-Limiter>=3.0.0,<4.0.0
+Flask-Talisman>=1.1.0,<2.0.0
+
+# Environment configuration
+python-dotenv>=1.0.0,<2.0.0
+
+# Optional: Redis backend for rate limiting in production
+# redis>=5.0.0,<6.0.0

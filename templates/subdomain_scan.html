@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subdomain Scanner - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .scan-form {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .scan-form input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .scan-form button {
+      min-width: 120px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .results-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .summary-card .value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .summary-card .label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .category-tab {
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .category-tab:hover {
+      border-color: var(--accent);
+    }
+
+    .category-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .subdomain-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .subdomain-table th,
+    .subdomain-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .subdomain-table th {
+      background: var(--bg-panel);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .subdomain-table tr:hover {
+      background: var(--bg-panel-alt);
+    }
+
+    .record-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-a { background: #388bfd33; color: #58a6ff; }
+    .badge-aaaa { background: #3fb95033; color: #3fb950; }
+    .badge-cname { background: #d29e2e33; color: #d29e2e; }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 60px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--border-subtle);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .info-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .info-box h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .info-box ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .subdomain-link {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .subdomain-link:hover {
+      text-decoration: underline;
+    }
+
+    .record-list {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>🔎 Subdomain Scanner</h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">
+      Discover subdomains using DNS enumeration. Scans 130+ common subdomain names.
+    </p>
+
+    <div class="scan-form">
+      <form id="scanForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="domain">Domain Name</label>
+            <input type="text" id="domain" placeholder="example.com" required>
+          </div>
+          <button type="submit" id="scanBtn">🔍 Scan</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="loading" class="loading-spinner" style="display: none;">
+      <div class="spinner" style="margin: 0 auto 16px;"></div>
+      <p>Scanning subdomains... <span id="scanProgress">0</span>/130+</p>
+    </div>
+
+    <div id="results" style="display: none;">
+      <div class="results-summary">
+        <div class="summary-card">
+          <div class="value" id="foundCount">0</div>
+          <div class="label">Subdomains Found</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" id="checkedCount">0</div>
+          <div class="label">Total Checked</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" id="categoryCount">0</div>
+          <div class="label">Categories</div>
+        </div>
+      </div>
+
+      <div class="category-tabs" id="categoryTabs">
+        <div class="category-tab active" data-category="all">All</div>
+      </div>
+
+      <div style="background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden;">
+        <table class="subdomain-table">
+          <thead>
+            <tr>
+              <th>Subdomain</th>
+              <th>Type</th>
+              <th>Records</th>
+              <th>TTL</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h4>ℹ️ About Subdomain Scanning</h4>
+      <ul>
+        <li><strong>Method:</strong> Checks 130+ common subdomain names via DNS queries</li>
+        <li><strong>Record Types:</strong> Looks for A, AAAA, and CNAME records</li>
+        <li><strong>Categories:</strong> Results grouped by type (web, mail, dev, infrastructure, etc.)</li>
+        <li><strong>Rate Limited:</strong> 10 scans per minute to prevent abuse</li>
+      </ul>
+    </div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    let allSubdomains = [];
+    let categorizedData = {};
+
+    document.getElementById('scanForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const domain = document.getElementById('domain').value.trim();
+      if (!domain) return;
+      
+      const btn = document.getElementById('scanBtn');
+      const loading = document.getElementById('loading');
+      const results = document.getElementById('results');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Scanning...';
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      
+      // Animate progress
+      let progress = 0;
+      const progressEl = document.getElementById('scanProgress');
+      const progressInterval = setInterval(() => {
+        progress = Math.min(progress + 5, 130);
+        progressEl.textContent = progress;
+      }, 100);
+      
+      try {
+        const response = await fetch(`/api/subdomain-scan?domain=${encodeURIComponent(domain)}`);
+        const data = await response.json();
+        
+        clearInterval(progressInterval);
+        
+        if (data.error) {
+          throw new Error(data.error.message);
+        }
+        
+        allSubdomains = data.subdomains;
+        categorizedData = data.by_category;
+        
+        document.getElementById('foundCount').textContent = data.total_found;
+        document.getElementById('checkedCount').textContent = data.total_checked;
+        document.getElementById('categoryCount').textContent = Object.keys(data.by_category).length;
+        
+        buildCategoryTabs(data.by_category);
+        renderTable(allSubdomains);
+        
+        results.style.display = 'block';
+        
+      } catch (err) {
+        clearInterval(progressInterval);
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Scan';
+        loading.style.display = 'none';
+      }
+    });
+
+    function buildCategoryTabs(categories) {
+      const tabs = document.getElementById('categoryTabs');
+      tabs.innerHTML = `<div class="category-tab active" data-category="all">All (${allSubdomains.length})</div>`;
+      
+      const icons = {
+        web: '🌐', mail: '📧', dns: '🖥️', dev: '💻',
+        infrastructure: '🔧', database: '🗄️', monitoring: '📊',
+        devops: '⚙️', security: '🔒', other: '📁'
+      };
+      
+      for (const [cat, subs] of Object.entries(categories)) {
+        const icon = icons[cat] || '📁';
+        tabs.innerHTML += `<div class="category-tab" data-category="${cat}">${icon} ${cat} (${subs.length})</div>`;
+      }
+      
+      tabs.querySelectorAll('.category-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          tabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          
+          const category = this.dataset.category;
+          if (category === 'all') {
+            renderTable(allSubdomains);
+          } else {
+            renderTable(categorizedData[category] || []);
+          }
+        });
+      });
+    }
+
+    function renderTable(subdomains) {
+      const tbody = document.getElementById('resultsBody');
+      
+      if (subdomains.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px;">No subdomains found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = subdomains.map(sub => {
+        const badgeClass = sub.type === 'A' ? 'badge-a' : sub.type === 'AAAA' ? 'badge-aaaa' : 'badge-cname';
+        return `
+          <tr>
+            <td>
+              <a href="http://${sub.full_domain}" target="_blank" rel="noopener" class="subdomain-link">
+                ${sub.full_domain} ↗
+              </a>
+            </td>
+            <td><span class="record-badge ${badgeClass}">${sub.type}</span></td>
+            <td class="record-list">${sub.records.join(', ')}</td>
+            <td>${sub.ttl ? sub.ttl + 's' : '-'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

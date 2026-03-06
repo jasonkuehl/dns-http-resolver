@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS Security Audit - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .audit-header {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .grade-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .grade-a { background: linear-gradient(135deg, #2ea043, #3fb950); color: #fff; }
+    .grade-b { background: linear-gradient(135deg, #58a6ff, #388bfd); color: #fff; }
+    .grade-c { background: linear-gradient(135deg, #d29922, #e3b341); color: #000; }
+    .grade-d { background: linear-gradient(135deg, #f0883e, #db6d28); color: #fff; }
+    .grade-f { background: linear-gradient(135deg, #f85149, #da3633); color: #fff; }
+
+    .grade-circle .score {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.9;
+    }
+
+    .audit-stats {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 15px 25px;
+      background: var(--bg-panel);
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .stat-value.passed { color: var(--accent-ok); }
+    .stat-value.warnings { color: var(--accent-warn); }
+    .stat-value.failed { color: var(--accent-error); }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .check-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .check-item.pass { border-left: 4px solid var(--accent-ok); }
+    .check-item.warning { border-left: 4px solid var(--accent-warn); }
+    .check-item.fail { border-left: 4px solid var(--accent-error); }
+
+    .check-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .check-content {
+      flex: 1;
+    }
+
+    .check-name {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .check-message {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .check-details {
+      margin-top: 10px;
+      background: var(--bg-main);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .check-details pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .audit-description {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>🔒 DNS Security Audit</h1>
+    <p>Perform a comprehensive security audit of your domain's DNS configuration. Check for common misconfigurations and vulnerabilities.</p>
+
+    <div class="audit-description">
+      <strong>This audit checks:</strong>
+      <ul style="margin: 8px 0 0 20px; color: var(--text-muted);">
+        <li>NS record redundancy</li>
+        <li>SOA record configuration</li>
+        <li>DNSSEC deployment</li>
+        <li>CAA records for certificate control</li>
+        <li>SPF email authentication</li>
+        <li>DMARC email policy</li>
+        <li>MX records</li>
+        <li>Zone transfer (AXFR) restrictions</li>
+      </ul>
+    </div>
+
+    <form id="audit-form">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input type="text" id="domain" placeholder="example.com" required>
+        <button type="submit">Run Security Audit</button>
+      </div>
+    </form>
+
+    <div id="loading">
+      <span class="loader"></span>
+      <p>Running security audit...</p>
+    </div>
+
+    <div id="results" style="display: none;"></div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    document.getElementById('audit-form').onsubmit = async function(e) {
+      e.preventDefault();
+      const domain = document.getElementById('domain').value.trim();
+      const resultsDiv = document.getElementById('results');
+      const loading = document.getElementById('loading');
+
+      resultsDiv.style.display = 'none';
+      resultsDiv.innerHTML = '';
+      loading.style.display = 'block';
+
+      try {
+        const resp = await fetch(`/api/security-audit?domain=${encodeURIComponent(domain)}`);
+        const data = await resp.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+          resultsDiv.innerHTML = `<div class="status-error">${data.error.message}</div>`;
+          resultsDiv.style.display = 'block';
+          return;
+        }
+
+        let html = '';
+
+        // Header with grade and stats
+        const gradeClass = `grade-${data.grade.toLowerCase()}`;
+        html += `
+          <div class="audit-header">
+            <div class="grade-circle ${gradeClass}">
+              ${data.grade}
+              <span class="score">${data.score}/100</span>
+            </div>
+            <div class="audit-stats">
+              <div class="stat-item">
+                <div class="stat-value passed">${data.summary.passed}</div>
+                <div class="stat-label">Passed</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value warnings">${data.summary.warnings}</div>
+                <div class="stat-label">Warnings</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value failed">${data.summary.failed}</div>
+                <div class="stat-label">Failed</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Check results
+        html += '<h2 style="margin-bottom: 16px;">Audit Results for ' + data.domain + '</h2>';
+        html += '<div class="check-list">';
+
+        data.checks.forEach(check => {
+          const icon = check.status === 'pass' ? '✅' : check.status === 'warning' ? '⚠️' : '❌';
+          html += `
+            <div class="check-item ${check.status}">
+              <div class="check-icon">${icon}</div>
+              <div class="check-content">
+                <div class="check-name">${check.name}</div>
+                <div class="check-message">${check.message}</div>
+          `;
+
+          if (check.details) {
+            html += '<div class="check-details"><pre>';
+            if (typeof check.details === 'object') {
+              html += JSON.stringify(check.details, null, 2);
+            } else {
+              html += check.details;
+            }
+            html += '</pre></div>';
+          }
+
+          html += '</div></div>';
+        });
+
+        html += '</div>';
+
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+      } catch (err) {
+        loading.style.display = 'none';
+        resultsDiv.innerHTML = `<div class="status-error">Error: ${err.message}</div>`;
+        resultsDiv.style.display = 'block';
+      }
+    };
+  </script>
+</body>
+</html>

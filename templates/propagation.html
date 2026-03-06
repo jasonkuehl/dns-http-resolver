@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS Propagation Checker - DNS Resolver</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .propagation-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .summary-card .value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .summary-card .label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .summary-card.propagated .value { color: var(--accent-ok); }
+    .summary-card.partial .value { color: var(--accent-warn); }
+    .summary-card.failed .value { color: var(--accent-error); }
+
+    .server-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+
+    .server-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .server-card.ok { border-left-color: var(--accent-ok); }
+    .server-card.empty { border-left-color: var(--accent-warn); }
+    .server-card.error { border-left-color: var(--accent-error); }
+    .server-card.timeout { border-left-color: var(--accent-error); }
+    .server-card.nxdomain { border-left-color: var(--accent-error); }
+
+    .server-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .server-name {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .server-latency {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .server-ip {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .server-answers {
+      background: var(--bg-main);
+      border-radius: 4px;
+      padding: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .server-error {
+      color: var(--accent-error);
+      font-size: 13px;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .common-answer {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .common-answer h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .common-answer .answers {
+      font-family: ui-monospace, monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  {% include '_header.html' %}
+
+  <div class="main-container">
+    <h1>🌍 DNS Propagation Checker</h1>
+    <p>Check if DNS changes have propagated across global DNS servers. Query 16+ worldwide resolvers simultaneously.</p>
+
+    <form id="propagation-form">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input type="text" id="domain" placeholder="example.com" required>
+        <label>Type:</label>
+        <select id="rtype">
+          <option value="A">A</option>
+          <option value="AAAA">AAAA</option>
+          <option value="MX">MX</option>
+          <option value="NS">NS</option>
+          <option value="CNAME">CNAME</option>
+          <option value="TXT">TXT</option>
+        </select>
+        <button type="submit">Check Propagation</button>
+      </div>
+    </form>
+
+    <div id="loading">
+      <span class="loader"></span>
+      <p>Querying DNS servers worldwide...</p>
+    </div>
+
+    <div id="results" style="display: none;"></div>
+  </div>
+
+  {% include '_footer.html' %}
+
+  <script>
+    document.getElementById('propagation-form').onsubmit = async function(e) {
+      e.preventDefault();
+      const domain = document.getElementById('domain').value.trim();
+      const rtype = document.getElementById('rtype').value;
+      const resultsDiv = document.getElementById('results');
+      const loading = document.getElementById('loading');
+
+      resultsDiv.style.display = 'none';
+      resultsDiv.innerHTML = '';
+      loading.style.display = 'block';
+
+      try {
+        const resp = await fetch(`/api/propagation?domain=${encodeURIComponent(domain)}&type=${rtype}`);
+        const data = await resp.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+          resultsDiv.innerHTML = `<div class="status-error">${data.error.message}</div>`;
+          resultsDiv.style.display = 'block';
+          return;
+        }
+
+        let html = '';
+
+        // Summary cards
+        const statusClass = data.is_fully_propagated ? 'propagated' : data.unique_responses > 1 ? 'partial' : 'failed';
+        html += `
+          <div class="propagation-summary">
+            <div class="summary-card ${statusClass}">
+              <div class="value">${data.is_fully_propagated ? '✓' : '⚠'}</div>
+              <div class="label">${data.is_fully_propagated ? 'Fully Propagated' : 'Propagating...'}</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">${data.servers_responding}</div>
+              <div class="label">Servers Responding</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">${data.servers_checked}</div>
+              <div class="label">Servers Checked</div>
+            </div>
+            <div class="summary-card ${data.unique_responses === 1 ? 'propagated' : 'partial'}">
+              <div class="value">${data.unique_responses}</div>
+              <div class="label">Unique Responses</div>
+            </div>
+          </div>
+        `;
+
+        // Most common answer
+        if (data.most_common_answer) {
+          html += `
+            <div class="common-answer">
+              <h3>Most Common Response for ${data.domain} (${data.record_type})</h3>
+              <div class="answers">${data.most_common_answer.join('<br>')}</div>
+            </div>
+          `;
+        }
+
+        // Server results grid
+        html += '<div class="server-grid">';
+        data.results.forEach(r => {
+          html += `
+            <div class="server-card ${r.status}">
+              <div class="server-header">
+                <span class="server-name">${r.server_name}</span>
+                ${r.latency_ms ? `<span class="server-latency">${r.latency_ms}ms</span>` : ''}
+              </div>
+              <div class="server-ip">${r.server_ip}</div>
+          `;
+          if (r.answers && r.answers.length > 0) {
+            html += `<div class="server-answers">${r.answers.join('<br>')}</div>`;
+            if (r.ttl) {
+              html += `<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">TTL: ${r.ttl}s</div>`;
+            }
+          } else if (r.error) {
+            html += `<div class="server-error">${r.error}</div>`;
+          } else {
+            html += `<div style="color: var(--text-muted);">No records</div>`;
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+      } catch (err) {
+        loading.style.display = 'none';
+        resultsDiv.innerHTML = `<div class="status-error">Error: ${err.message}</div>`;
+        resultsDiv.style.display = 'block';
+      }
+    };
+  </script>
+</body>
+</html>

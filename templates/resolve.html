@@ -5,49 +5,7 @@
   <link rel="stylesheet" href="/static/css/style.css">
 
   <style>
-    body {
-      background: #0d1117;
-      color: #c9d1d9;
-      font-family: Arial, sans-serif;
-      margin: 0;
-    }
 
-    .main-container {
-      padding: 24px;
-      max-width: 1000px;
-      margin: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    form#resolver-form {
-      background: #161b22;
-      padding: 16px;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      text-align: center;
-      width: 100%;
-    }
-
-    .form-group-inline {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-      justify-content: center;
-    }
-
-    input, select, button {
-      padding: 8px 12px;
-      font-size: 14px;
-      border: 1px solid #30363d;
-      border-radius: 4px;
-      background: #0d1117;
-      color: #c9d1d9;
-    }
 
     button:hover {
       background: #21262d;
@@ -67,16 +25,6 @@
       width: 100%;
     }
 
-    .summary-server {
-      padding: 6px;
-      border-left: 4px solid #58a6ff;
-      margin-bottom: 8px;
-      background: #161b22;
-    }
-
-    .status-ok { border-color: #2ea043; }
-    .status-missing { border-color: #d29922; }
-    .status-error { border-color: #f85149; }
 
     .server-selection {
       margin-top: 10px;
@@ -133,117 +81,12 @@
       font-size: 13px;
     }
 
-    .record-section {
-      margin-bottom: 24px;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 10px;
-      position: relative;
-      width: 100%;
-      box-sizing: border-box;
-      min-width: 1000px; /* Add this to prevent shrinking */
-      max-width: 1000px;
-      margin: 0 auto 24px auto;
-    }
-
-    .record-section h2 {
-      margin: 0;
-      font-size: 16px;
-      color: #c9d1d9;
-      cursor: pointer;
-    }
-
-    .record-content {
-      word-wrap: break-word;
-      overflow-x: auto;
-    }
-
-    .record-content > div {
-      max-width: 100%;
-      overflow-x: auto;
-      box-sizing: border-box;
-    }
-
-    pre {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      padding: 12px;
-      white-space: pre-wrap;
-      font-family: monospace;
-      font-size: 13px;
-      overflow-x: auto;
-      max-width: 100%;
-      word-break: break-word;
-    }
-
-    .copy-btn {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      padding: 4px 8px;
-      font-size: 12px;
-      background: #238636;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .copy-btn:hover {
-      background: #2ea043;
-    }
-
-    .copied-label {
-      position: absolute;
-      top: 10px;
-      right: 80px;
-      background: #0f0;
-      color: #000;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      opacity: 1;
-      transition: opacity 2s ease-out;
-    }
-
-    .ttl-bar-container {
-      height: 6px;
-      background: #444;
-      border-radius: 4px;
-      margin-top: 6px;
-      overflow: hidden;
-    }
-
-    .ttl-bar {
-      height: 100%;
-      width: 100%;
-      transition: width 1s linear;
-    }
-
-    .ttl-label {
-      font-size: 12px;
-      margin-left: 8px;
-      color: #8b949e;
-    }
-
     #searching-message {
       margin-top: 10px;
       font-size: 16px;
       text-align: center;
       color: #8b949e;
       display: none;
-    }
-
-    .loader {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid #999;
-      border-top: 2px solid #4caf50;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
     }
 
     @keyframes spin {
@@ -261,11 +104,6 @@
       background: rgba(255, 80, 80, 0.15);
     }
 
-    @media (max-width: 600px) {
-      .form-group-inline {
-        flex-direction: column;
-        align-items: stretch;
-      }
 
       .copy-btn {
         top: 10px;
@@ -276,6 +114,64 @@
         top: 36px;
         right: 10px;
       }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--text-main);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .reverse-result {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .reverse-result h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    .reverse-result .hostname {
+      font-family: ui-monospace, monospace;
+      font-size: 14px;
+      padding: 8px 12px;
+      background: var(--bg-main);
+      border-radius: 4px;
+      margin: 4px 0;
     }
   </style>
 
@@ -290,61 +186,129 @@
 {% include '_header.html' %}
 
 <div class="main-container">
-  <form id="resolver-form">
-    <div class="form-group-inline">
-      <label>Domain:</label>
-      <input id="domain" type="text" required>
-    </div>
-    <div class="form-group-inline">
-      <label>Record Type:</label>
-      <select id="rtype">
-        <option>A</option><option>AAAA</option><option>MX</option>
-        <option>CNAME</option><option>NS</option><option>TXT</option><option>SOA</option>
-        <option>PTR</option><option>SRV</option><option>ALL</option>
-      </select>
-      <button id="search-btn" type="submit">Search</button>
-      <button type="button" id="expandAll">Expand All</button>
-    </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="forward">Forward Lookup</button>
+    <button class="tab" data-tab="reverse">Reverse Lookup (PTR)</button>
+  </div>
 
-    <div class="server-selection">
-      <h3>DNS Servers</h3>
-      <div class="server-checkboxes" id="server-checkboxes"></div>
-      <div class="custom-server-input">
-        <input id="custom-server" type="text" placeholder="Custom server IP (e.g., 8.8.8.8)">
-        <button type="button" class="btn-small" id="add-custom-server">Add</button>
+  <!-- Forward Lookup Tab -->
+  <div id="forward-tab" class="tab-content active">
+    <form id="resolver-form">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input id="domain" type="text" placeholder="example.com" required>
       </div>
+      <div class="form-group-inline">
+        <label>Record Type:</label>
+        <select id="rtype">
+          <option>A</option><option>AAAA</option><option>MX</option>
+          <option>CNAME</option><option>NS</option><option>TXT</option><option>SOA</option>
+          <option>PTR</option><option>SRV</option><option>CAA</option><option>DNSKEY</option><option>ALL</option>
+        </select>
+        <button id="search-btn" type="submit">Search</button>
+        <button type="button" id="expandAll">Expand All</button>
+      </div>
+
+      <div class="server-selection">
+        <h3>DNS Servers</h3>
+        <div class="server-checkboxes" id="server-checkboxes"></div>
+        <div class="custom-server-input">
+          <input id="custom-server" type="text" placeholder="Custom server IP (e.g., 8.8.8.8)">
+          <button type="button" class="btn-small" id="add-custom-server">Add</button>
+        </div>
+      </div>
+    </form>
+
+    <input id="filter-box" type="text" placeholder="Filter results...">
+
+    <div id="loading-spinner">
+      <svg width="40" height="40" viewBox="0 0 50 50" stroke="#0af">
+        <circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"/>
+      </svg>
     </div>
-  </form>
 
-  <input id="filter-box" type="text" placeholder="Filter results...">
+    <div id="searching-message">
+      <span class="loader"></span><span id="searching-text">Searching…</span>
+    </div>
 
-  <div id="loading-spinner">
-    <svg width="40" height="40" viewBox="0 0 50 50" stroke="#0af">
-      <circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"/>
-    </svg>
+    <div id="server-summary"></div>
+    <div id="output"></div>
+    <div id="error-message" class="status-error"></div>
   </div>
 
-  <div id="searching-message">
-    <span class="loader"></span><span id="searching-text">Searching…</span>
-  </div>
+  <!-- Reverse Lookup Tab -->
+  <div id="reverse-tab" class="tab-content">
+    <form id="reverse-form">
+      <div class="form-group-inline">
+        <label>IP Address:</label>
+        <input id="reverse-ip" type="text" placeholder="8.8.8.8 or 2001:4860:4860::8888" required>
+        <button type="submit">Lookup</button>
+      </div>
+    </form>
 
-  <div id="server-summary"></div>
-  <div id="output"></div>
-  <div id="error-message" class="status-error"></div>
+    <div id="reverse-loading" style="display: none;">
+      <span class="loader"></span><span>Looking up hostname…</span>
+    </div>
+
+    <div id="reverse-output"></div>
+    <div id="reverse-error" class="status-error"></div>
+  </div>
 </div>
 
 <script>
-// Default DNS servers
-const DEFAULT_SERVERS = {
-  "Google Primary": "8.8.8.8",
-  "Google Secondary": "8.8.4.4",
-  "Cloudflare Primary": "1.1.1.1",
-  "Cloudflare Secondary": "1.0.0.1",
-  "Quad9 Primary": "9.9.9.9",
-  "Quad9 Secondary": "149.112.112.112",
-  "OpenDNS Primary": "208.67.222.222",
-  "OpenDNS Secondary": "208.67.220.220"
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+  });
+});
+
+// Reverse lookup form
+document.getElementById('reverse-form').onsubmit = async function(e) {
+  e.preventDefault();
+  const ip = document.getElementById('reverse-ip').value.trim();
+  const output = document.getElementById('reverse-output');
+  const error = document.getElementById('reverse-error');
+  const loading = document.getElementById('reverse-loading');
+
+  output.innerHTML = '';
+  error.textContent = '';
+  loading.style.display = 'block';
+
+  try {
+    const resp = await fetch(`/api/reverse?ip=${encodeURIComponent(ip)}`);
+    const data = await resp.json();
+    loading.style.display = 'none';
+
+    if (data.error) {
+      error.textContent = data.error.message || data.error;
+      return;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'reverse-result';
+    div.innerHTML = `
+      <h3>🔄 Reverse DNS for ${data.ip}</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">PTR: ${data.reverse_name}</p>
+      ${data.hostnames && data.hostnames.length > 0
+        ? data.hostnames.map(h => `<div class="hostname">${h}</div>`).join('')
+        : '<p style="color: var(--accent-warn);">No PTR record found</p>'}
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+        Latency: ${data.latency_ms}ms
+      </p>
+    `;
+    output.appendChild(div);
+  } catch (err) {
+    loading.style.display = 'none';
+    error.textContent = err.message;
+  }
 };
+
+// Default DNS servers (loaded from server config)
+const DEFAULT_SERVERS = {{ dns_servers | tojson | safe }};
 
 // Initialize server checkboxes
 function initializeServerCheckboxes() {
@@ -604,6 +568,24 @@ document.getElementById("resolver-form").onsubmit = async function(e) {
     document.getElementById("output").appendChild(section);
   });
 };
+
+// Handle URL parameters (from home page quick lookup)
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  const domain = params.get("domain");
+  const type = params.get("type");
+
+  if (domain) {
+    document.getElementById("domain").value = domain;
+    if (type) {
+      document.getElementById("rtype").value = type;
+    }
+    // Auto-submit the form
+    setTimeout(() => {
+      document.getElementById("resolver-form").dispatchEvent(new Event("submit"));
+    }, 100);
+  }
+});
 </script>
 
 {% include '_footer.html' %}
