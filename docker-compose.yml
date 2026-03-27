@@ -14,6 +14,13 @@ services:
       - PORT=60200
     volumes:
       - ./logs:/app/logs:rw
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:60200/health"]
       interval: 30s

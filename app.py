@@ -54,7 +54,6 @@ def parse_server_env(env_var: str, default: dict) -> dict:
     
     servers = {}
     # Split on newlines or semicolons
-    import re
     entries = re.split(r'[;\n]+', raw)
     for pair in entries:
         pair = pair.strip()
@@ -518,7 +517,7 @@ def dns_trace(domain, max_steps=15):
         except Exception as e:
             step["error"] = str(e)
             trace_steps.append(step)
-            logging.warning(f"Trace step {step_count} failed: {e}")
+            logging.warning("Trace step %d failed: %s", step_count, e)
             step_count += 1
 
     return trace_steps
@@ -840,7 +839,7 @@ def api_email_security():
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
         pass
     except Exception as e:
-        logging.warning(f"SPF lookup failed: {e}")
+        logging.warning("SPF lookup failed: %s", e)
 
     # Check DMARC
     try:
@@ -855,7 +854,7 @@ def api_email_security():
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
         pass
     except Exception as e:
-        logging.warning(f"DMARC lookup failed: {e}")
+        logging.warning("DMARC lookup failed: %s", e)
 
     # Check DKIM if selector provided
     if dkim_selector:
@@ -869,7 +868,7 @@ def api_email_security():
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
             pass
         except Exception as e:
-            logging.warning(f"DKIM lookup failed: {e}")
+            logging.warning("DKIM lookup failed: %s", e)
 
     # Check MX records
     try:
@@ -884,7 +883,7 @@ def api_email_security():
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
         pass
     except Exception as e:
-        logging.warning(f"MX lookup failed: {e}")
+        logging.warning("MX lookup failed: %s", e)
 
     # Calculate score and recommendations
     score = 0
@@ -1299,7 +1298,10 @@ def api_security_audit():
 def api_compare():
     """Compare response times and results across DNS providers."""
     domain = request.args.get("domain", "").strip().lower()
-    iterations = min(int(request.args.get("iterations", 3)), 10)
+    try:
+        iterations = min(int(request.args.get("iterations", 3)), 10)
+    except (ValueError, TypeError):
+        iterations = 3
 
     if not domain:
         return jsonify({"error": {"code": "BadRequest", "message": "No domain specified"}}), 400
@@ -1860,4 +1862,4 @@ def server_error(e):
 if __name__ == "__main__":
     # Development-only server; production should use gunicorn
     debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes", "on")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 60200)), debug=debug)

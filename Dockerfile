@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # Set labels for container metadata
-LABEL maintainer="your-email@example.com"
+LABEL maintainer="jason@jasonkuehl.com"
 LABEL description="DNS Resolver - Multi-server DNS lookup with web UI and API"
 LABEL version="1.0.0"
 

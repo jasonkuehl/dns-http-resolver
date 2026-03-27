@@ -67,3 +67,14 @@ class TestDomainValidation:
         """Test domains with numbers pass validation."""
         assert is_valid_domain_input("domain123.com") is True
         assert is_valid_domain_input("123domain.com") is True
+
+    def test_hyphen_start_end_rejected(self):
+        """Test labels starting or ending with hyphen are rejected."""
+        assert is_valid_domain_input("-example.com") is False
+        assert is_valid_domain_input("example-.com") is False
+
+    def test_special_characters_rejected(self):
+        """Test domains with special characters are rejected."""
+        assert is_valid_domain_input("exam!ple.com") is False
+        assert is_valid_domain_input("exam@ple.com") is False
+        assert is_valid_domain_input("exam ple.com") is False

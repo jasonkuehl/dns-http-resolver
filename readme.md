@@ -1,6 +1,6 @@
 # DNS Resolver
 
-[![Docker Build](https://github.com/yourusername/dns-http-resolver/actions/workflows/docker-build.yml/badge.svg)](https://github.com/yourusername/dns-http-resolver/actions)
+[![Docker Build](https://github.com/jasonkuehl/dns-http-resolver/actions/workflows/docker-build.yml/badge.svg)](https://github.com/jasonkuehl/dns-http-resolver/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -39,7 +39,7 @@ A DNS resolver tool with a web UI and JSON API that queries multiple DNS servers
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dns-http-resolver.git
+git clone https://github.com/jasonkuehl/dns-http-resolver.git
 cd dns-http-resolver
 
 # Run with the included script
@@ -294,27 +294,55 @@ LIMITER_STORAGE_URI=redis://localhost:6379
 
 ## 🖥️ Shell Integration
 
-Add this function to your `.bashrc` or `.zshrc`:
+Ready-to-use shell functions are provided in the [`examples/`](examples/) directory for both Bash and Zsh.
+
+### Quick Setup
+
+**Bash** — add to `~/.bashrc`:
 
 ```bash
-dns_resolve() {
-  local domain="$1"
-  local type="${2:-A}"
-  if [[ -z "$domain" ]]; then
-    echo "Usage: dns_resolve <domain> [record_type]"
-    return 1
-  fi
-  curl -s "http://localhost:60200/api/resolve?domain=$domain&type=$type" | jq
-}
+source /path/to/dns-http-resolver/examples/bash_functions.sh
 ```
+
+**Zsh** — add to `~/.zshrc`:
+
+```zsh
+source /path/to/dns-http-resolver/examples/zsh_functions.zsh
+```
+
+If your resolver runs on a different host/port:
+
+```bash
+export DNS_HTTP_RESOLVER_URL="http://192.168.1.100:60200"
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `dns-http-resolve <domain> [type]` | DNS lookup (A, MX, TXT, etc.) |
+| `dns-http-reverse <ip>` | Reverse DNS (PTR) |
+| `dns-http-trace <domain>` | Trace resolution path |
+| `dns-http-propagation <domain> [type]` | Global propagation check |
+| `dns-http-mail <domain>` | Email security (SPF/DKIM/DMARC) |
+| `dns-http-blacklist <ip>` | Blacklist/RBL check |
+| `dns-http-security <domain>` | DNS security audit |
+| `dns-http-zone <domain>` | Zone info overview |
+| `dns-http-subdomain <domain>` | Subdomain discovery |
+| `dns-http-health` | Service health check |
+| `dns-http-servers` | List DNS servers |
 
 **Usage:**
 
 ```bash
-dns_resolve example.com        # A record (default)
-dns_resolve example.com MX     # MX records
-dns_resolve example.com ALL    # All record types
+dns-http-resolve example.com        # A record (default)
+dns-http-resolve example.com MX     # MX records
+dns-http-resolve example.com ALL    # All record types
+dns-http-reverse 8.8.8.8            # Reverse DNS
+dns-http-trace example.com          # Trace resolution
 ```
+
+See [`examples/README.md`](examples/README.md) for the full command reference and scripting examples.
 
 ---
 
