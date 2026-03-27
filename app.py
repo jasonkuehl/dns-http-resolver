@@ -13,6 +13,9 @@ import time
 import logging
 import re
 import random
+from pathlib import Path
+
+__version__ = Path(__file__).resolve().parent.joinpath("VERSION").read_text().strip()
 from collections import Counter
 import dns.resolver
 import dns.message
@@ -533,6 +536,7 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "dns-http-resolver",
+        "version": __version__,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     })
 

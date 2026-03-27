@@ -1,9 +1,11 @@
 FROM python:3.12-slim
 
+ARG APP_VERSION
+
 # Set labels for container metadata
 LABEL maintainer="jason@jasonkuehl.com"
 LABEL description="DNS Resolver - Multi-server DNS lookup with web UI and API"
-LABEL version="1.0.0"
+LABEL version="${APP_VERSION}"
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -29,6 +31,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY app.py .
+COPY VERSION .
 COPY templates ./templates
 COPY static ./static
 COPY .env.sample .env

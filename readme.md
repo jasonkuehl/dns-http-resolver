@@ -1,6 +1,7 @@
 # DNS Resolver
 
 [![Docker Build](https://github.com/jasonkuehl/dns-http-resolver/actions/workflows/docker-build.yml/badge.svg)](https://github.com/jasonkuehl/dns-http-resolver/actions)
+[![Release](https://img.shields.io/github/v/release/jasonkuehl/dns-http-resolver)](https://github.com/jasonkuehl/dns-http-resolver/releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
