@@ -4,6 +4,9 @@ body {
   color: #c9d1d9;
   font-family: Arial, sans-serif;
   margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Main container */
@@ -11,12 +14,11 @@ body {
   padding: 24px;
   max-width: 1000px;
   margin: auto;
+  flex: 1;
 }
 
 /* Navigation/Header */
 .nav-container {
-  max-width: 1000px;
-  margin: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -80,7 +82,7 @@ body {
 .site-footer {
   background: #0d1117;
   padding: 14px 0;
-  margin-top: 40px;
+  margin-top: auto;
   color: #8b949e;
   text-align: center;
   font-size: 14px;
@@ -92,6 +94,53 @@ body {
 }
 .site-footer a:hover {
   color: #fff;
+}
+
+/* Curl Examples */
+.curl-example {
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+.curl-example > summary {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+.curl-example[open] > summary {
+  border-radius: 6px 6px 0 0;
+}
+.curl-example:not([open]) > summary {
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.curl-example-inner {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.curl-example summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #8b949e;
+  user-select: none;
+  list-style: none;
+}
+.curl-example summary::-webkit-details-marker { display: none; }
+.curl-example summary:hover {
+  color: #c9d1d9;
+}
+.curl-example pre {
+  margin: 0;
+  padding: 12px 16px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 0 0 6px 6px;
+  color: #0af;
+  font-size: 13px;
+  overflow-x: auto;
 }
 
 /* Resolver & Trace UI */
@@ -245,7 +294,7 @@ button:hover {
 /* Footer polish */
 .site-footer {
   border-top: 1px solid var(--border-subtle);
-  margin-top: 40px;
+  margin-top: auto;
   padding-top: 16px;
   font-size: 13px;
   color: var(--text-muted);
@@ -292,7 +341,12 @@ form {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  justify-content: center;
+}
+
+.form-group-inline input[type="text"],
+.form-group-inline select {
+  flex: 1;
+  min-width: 150px;
 }
 
 /* Inputs & buttons */
@@ -392,9 +446,11 @@ pre {
 
 /* Logo */
 .logo {
-  height: 20px;
-  width: auto;
+  height: 24px;
+  width: 24px;
   margin-right: 6px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* Search box */
@@ -427,7 +483,6 @@ pre {
 
 /* Mobile behavior */
 @media (max-width: 800px) {
-  .nav-search,
   .nav-left,
   .nav-right {
     display: none;
@@ -447,7 +502,7 @@ pre {
 
 /* ---- Footer ---- */
 .site-footer {
-  margin-top: 60px;
+  margin-top: auto;
   padding: 16px 20px;
   background: var(--bg-panel);
   border-top: 1px solid var(--border-subtle);
@@ -462,6 +517,106 @@ pre {
 
 .site-footer a:hover {
   text-decoration: underline;
+}
+
+
+/* ===============================
+   Unified page layout overrides
+   =============================== */
+
+/* Page titles */
+.main-container > h1 {
+  font-size: 1.6rem;
+  margin: 0 0 6px;
+}
+
+.main-container > p {
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  font-size: 15px;
+}
+
+/* Forms — consistent look */
+.main-container form {
+  background: var(--bg-panel);
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+/* Summary bars — unified row instead of separate boxes */
+.main-container .propagation-summary,
+.main-container .blacklist-summary,
+.main-container .results-summary {
+  display: flex;
+  gap: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.main-container .propagation-summary .summary-card,
+.main-container .results-summary .summary-card,
+.main-container .blacklist-summary .summary-box {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-right: 1px solid var(--border-subtle);
+  padding: 20px;
+  text-align: center;
+  min-width: 0;
+}
+
+.main-container .propagation-summary .summary-card:last-child,
+.main-container .results-summary .summary-card:last-child,
+.main-container .blacklist-summary .summary-box:last-child {
+  border-right: none;
+}
+
+/* Blacklist status colors still visible */
+.main-container .blacklist-summary .summary-box.clean {
+  background: rgba(46, 160, 67, 0.06);
+}
+.main-container .blacklist-summary .summary-box.listed {
+  background: rgba(248, 81, 73, 0.06);
+}
+
+/* Security audit stats bar */
+.main-container .audit-stats {
+  display: flex;
+  gap: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.main-container .audit-stats .stat-item {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-right: 1px solid var(--border-subtle);
+  padding: 16px 20px;
+  text-align: center;
+}
+
+.main-container .audit-stats .stat-item:last-child {
+  border-right: none;
+}
+
+/* Info boxes — less prominent */
+.main-container .info-box {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.main-container .info-box:hover {
+  opacity: 1;
 }
 
 
@@ -500,10 +655,6 @@ pre {
   padding: 12px;
   position: relative;
   width: 100%;
-  min-width: 1000px;
-  max-width: 1000px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .record-section h2 {

@@ -6,33 +6,6 @@
   <title>Zone Info - DNS Resolver</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    .zone-form {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-
-    .form-group {
-      flex: 1;
-      min-width: 200px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
     .summary-row {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -234,21 +207,20 @@
 
   <div class="main-container">
     <h1>📋 Zone Info</h1>
-    <p style="color: var(--text-muted); margin-bottom: 24px;">
-      Complete DNS record overview for any domain with service detection.
-    </p>
+    <p>Complete DNS record overview for any domain with service detection.</p>
 
-    <div class="zone-form">
-      <form id="zoneForm">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="domain">Domain Name</label>
-            <input type="text" id="domain" placeholder="example.com" required>
-          </div>
-          <button type="submit" id="queryBtn">🔍 Query Zone</button>
-        </div>
-      </form>
-    </div>
+    <details class="curl-example">
+      <summary>💻 curl example</summary>
+      <pre>curl "http://localhost:60200/api/zone-info?domain=example.com" | jq</pre>
+    </details>
+
+    <form id="zoneForm">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input type="text" id="domain" placeholder="example.com" required>
+        <button type="submit" id="queryBtn">🔍 Query Zone</button>
+      </div>
+    </form>
 
     <div id="loading" class="loading" style="display: none;">
       ⏳ Querying all DNS record types...

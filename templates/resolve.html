@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DNS Resolver</title>
   <link rel="stylesheet" href="/static/css/style.css">
 
@@ -11,11 +13,16 @@
       background: #21262d;
     }
 
+    #resolver-form #domain {
+      min-width: 300px;
+    }
+
     #filter-box {
       margin-bottom: 20px;
       width: 100%;
-      padding: 8px;
+      padding: 10px 14px;
       background: #161b22;
+      font-size: 15px;
     }
 
     #server-summary {
@@ -175,17 +182,30 @@
     }
   </style>
 
-
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    media="print" onload="this.media='all'">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
 </head>
 <body>
 
 {% include '_header.html' %}
 
 <div class="main-container">
+  <h1>🔍 DNS Resolver</h1>
+  <p>Perform forward and reverse DNS lookups across multiple DNS providers with DNSSEC validation.</p>
+
+  <details class="curl-example">
+    <summary>💻 curl examples</summary>
+    <pre># Forward lookup
+curl "http://localhost:60200/api/resolve?domain=example.com&type=A" | jq
+
+# Reverse lookup
+curl "http://localhost:60200/api/reverse?ip=8.8.8.8" | jq</pre>
+  </details>
+
   <div class="tabs">
     <button class="tab active" data-tab="forward">Forward Lookup</button>
     <button class="tab" data-tab="reverse">Reverse Lookup (PTR)</button>
@@ -431,17 +451,23 @@ async function fetchDNSData(domain, rtype, servers) {
 document.getElementById("expandAll").onclick = () =>
   document.querySelectorAll(".record-content").forEach(el => el.style.display = "block");
 
-document.getElementById("filter-box").oninput = function() {
-  const f = this.value.toLowerCase();
-  document.querySelectorAll("#output pre").forEach(pre => {
-    const orig = pre.getAttribute("data-original");
-    if (orig) {
-      pre.textContent = orig
-        .split("\n").filter(l => l.toLowerCase().includes(f)).join("\n");
-      hljs.highlightElement(pre);
-    }
-  });
-};
+document.getElementById("filter-box").oninput = (function() {
+  let timer;
+  return function() {
+    clearTimeout(timer);
+    const f = this.value.toLowerCase();
+    timer = setTimeout(() => {
+      document.querySelectorAll("#output pre").forEach(pre => {
+        const orig = pre.getAttribute("data-original");
+        if (orig) {
+          pre.textContent = orig
+            .split("\n").filter(l => l.toLowerCase().includes(f)).join("\n");
+          hljs.highlightElement(pre);
+        }
+      });
+    }, 200);
+  };
+})();
 
 document.getElementById("resolver-form").onsubmit = async function(e) {
   e.preventDefault();
@@ -466,12 +492,14 @@ document.getElementById("resolver-form").onsubmit = async function(e) {
     data = await fetchDNSData(domain, rtype, selectedServers);
   } catch (err) {
     spinner.style.display = "none";
+    searchingMsg.style.display = "none";
     searchBtn.disabled = false;
     document.getElementById("error-message").textContent = err.message;
     return;
   }
 
   spinner.style.display = "none";
+  searchingMsg.style.display = "none";
   searchBtn.disabled = false;
 
   // Server summary

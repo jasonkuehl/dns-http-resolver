@@ -152,6 +152,12 @@
     <h1>📧 Email Security Analyzer</h1>
     <p>Check SPF, DKIM, and DMARC records to analyze email authentication and security for any domain.</p>
 
+    <details class="curl-example">
+      <summary>💻 curl examples</summary>
+      <pre>curl "http://localhost:60200/api/email-security?domain=example.com" | jq
+curl "http://localhost:60200/api/email-security?domain=example.com&dkim_selector=google" | jq</pre>
+    </details>
+
     <form id="email-form">
       <div class="form-group-inline">
         <label>Domain:</label>

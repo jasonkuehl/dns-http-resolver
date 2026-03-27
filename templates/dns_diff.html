@@ -6,14 +6,6 @@
   <title>DNS Diff - DNS Resolver</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    .diff-form {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
     .mode-toggle {
       display: flex;
       gap: 12px;
@@ -45,25 +37,6 @@
       font-size: 1.5rem;
       display: block;
       margin-bottom: 4px;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-
-    .form-group {
-      flex: 1;
-      min-width: 150px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: var(--text-muted);
     }
 
     .server-grid {
@@ -246,49 +219,48 @@
 
   <div class="main-container">
     <h1>⚖️ DNS Diff</h1>
-    <p style="color: var(--text-muted); margin-bottom: 24px;">
-      Compare DNS records between domains or across different DNS servers.
-    </p>
+    <p>Compare DNS records between domains or across different DNS servers.</p>
 
-    <div class="diff-form">
-      <div class="mode-toggle">
-        <div class="mode-btn active" data-mode="server" onclick="setMode('server')">
-          <span class="icon">🖥️</span>
-          Compare Across Servers
-        </div>
-        <div class="mode-btn" data-mode="domain" onclick="setMode('domain')">
-          <span class="icon">🔀</span>
-          Compare Two Domains
-        </div>
+    <details class="curl-example">
+      <summary>💻 curl examples</summary>
+      <pre># Compare across DNS servers
+curl "http://localhost:60200/api/dns-diff?domain1=example.com&type=NS" | jq
+
+# Compare two domains
+curl "http://localhost:60200/api/dns-diff?domain1=google.com&domain2=cloudflare.com&type=MX" | jq</pre>
+    </details>
+
+    <div class="mode-toggle">
+      <div class="mode-btn active" data-mode="server" onclick="setMode('server')">
+        <span class="icon">🖥️</span>
+        Compare Across Servers
       </div>
-
-      <form id="diffForm">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="domain1" id="domain1Label">Domain</label>
-            <input type="text" id="domain1" placeholder="example.com" required>
-          </div>
-          <div class="form-group" id="domain2Group" style="display: none;">
-            <label for="domain2">Domain 2</label>
-            <input type="text" id="domain2" placeholder="example.org">
-          </div>
-          <div class="form-group" style="max-width: 150px;">
-            <label for="recordType">Record Type</label>
-            <select id="recordType">
-              <option value="A">A</option>
-              <option value="AAAA">AAAA</option>
-              <option value="MX">MX</option>
-              <option value="NS">NS</option>
-              <option value="TXT">TXT</option>
-              <option value="CNAME">CNAME</option>
-              <option value="SOA">SOA</option>
-              <option value="CAA">CAA</option>
-            </select>
-          </div>
-          <button type="submit" id="compareBtn">⚖️ Compare</button>
-        </div>
-      </form>
+      <div class="mode-btn" data-mode="domain" onclick="setMode('domain')">
+        <span class="icon">🔀</span>
+        Compare Two Domains
+      </div>
     </div>
+
+    <form id="diffForm">
+      <div class="form-group-inline">
+        <label id="domain1Label">Domain:</label>
+        <input type="text" id="domain1" placeholder="example.com" required>
+        <label id="domain2Label" style="display: none;">Domain 2:</label>
+        <input type="text" id="domain2" placeholder="example.org" style="display: none;">
+        <label>Type:</label>
+        <select id="recordType">
+          <option value="A">A</option>
+          <option value="AAAA">AAAA</option>
+          <option value="MX">MX</option>
+          <option value="NS">NS</option>
+          <option value="TXT">TXT</option>
+          <option value="CNAME">CNAME</option>
+          <option value="SOA">SOA</option>
+          <option value="CAA">CAA</option>
+        </select>
+        <button type="submit" id="compareBtn">⚖️ Compare</button>
+      </div>
+    </form>
 
     <div id="loading" class="loading" style="display: none;">
       ⏳ Comparing DNS records...
@@ -326,15 +298,18 @@
         btn.classList.toggle('active', btn.dataset.mode === mode);
       });
       
-      const domain2Group = document.getElementById('domain2Group');
+      const domain2Label = document.getElementById('domain2Label');
+      const domain2Input = document.getElementById('domain2');
       const domain1Label = document.getElementById('domain1Label');
       
       if (mode === 'domain') {
-        domain2Group.style.display = 'block';
-        domain1Label.textContent = 'Domain 1';
+        domain2Label.style.display = '';
+        domain2Input.style.display = '';
+        domain1Label.textContent = 'Domain 1:';
       } else {
-        domain2Group.style.display = 'none';
-        domain1Label.textContent = 'Domain';
+        domain2Label.style.display = 'none';
+        domain2Input.style.display = 'none';
+        domain1Label.textContent = 'Domain:';
       }
       
       document.getElementById('serverResults').style.display = 'none';

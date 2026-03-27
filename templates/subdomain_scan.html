@@ -6,18 +6,6 @@
   <title>Subdomain Scanner - DNS Resolver</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    .scan-form {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .scan-form input {
-      flex: 1;
-      min-width: 200px;
-    }
 
     .scan-form button {
       min-width: 120px;
@@ -190,21 +178,20 @@
 
   <div class="main-container">
     <h1>🔎 Subdomain Scanner</h1>
-    <p style="color: var(--text-muted); margin-bottom: 24px;">
-      Discover subdomains using DNS enumeration. Scans 130+ common subdomain names.
-    </p>
+    <p>Discover subdomains using DNS enumeration. Scans 130+ common subdomain names.</p>
 
-    <div class="scan-form">
-      <form id="scanForm">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="domain">Domain Name</label>
-            <input type="text" id="domain" placeholder="example.com" required>
-          </div>
-          <button type="submit" id="scanBtn">🔍 Scan</button>
-        </div>
-      </form>
-    </div>
+    <details class="curl-example">
+      <summary>💻 curl example</summary>
+      <pre>curl "http://localhost:60200/api/subdomain-scan?domain=example.com" | jq</pre>
+    </details>
+
+    <form id="scanForm">
+      <div class="form-group-inline">
+        <label>Domain:</label>
+        <input type="text" id="domain" placeholder="example.com" required>
+        <button type="submit" id="scanBtn">🔍 Scan</button>
+      </div>
+    </form>
 
     <div id="loading" class="loading-spinner" style="display: none;">
       <div class="spinner" style="margin: 0 auto 16px;"></div>

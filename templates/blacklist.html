@@ -131,6 +131,11 @@
     <h1>🚫 IP Blacklist Checker</h1>
     <p>Check if an IP address is listed on major DNS-based blacklists (DNSBLs/RBLs). These lists are used by email servers to block spam.</p>
 
+    <details class="curl-example">
+      <summary>💻 curl example</summary>
+      <pre>curl "http://localhost:60200/api/blacklist?ip=123.45.67.89" | jq</pre>
+    </details>
+
     <div class="info-box">
       <h3>What are DNS Blacklists?</h3>
       <p>DNSBLs (DNS-based Blackhole Lists) are databases of IP addresses known for sending spam or malicious content. Email servers query these lists to decide whether to accept or reject incoming mail.</p>

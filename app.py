@@ -72,13 +72,15 @@ def parse_server_env(env_var: str, default: dict) -> dict:
 
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600
 logging.basicConfig(level=logging.INFO)
 
 # Security headers / CSP
 CSP = {
   "default-src": ["'self'"],
   "script-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-  "style-src": ["'self'","'unsafe-inline'","https://cdnjs.cloudflare.com"]
+  "style-src": ["'self'","'unsafe-inline'","https://cdnjs.cloudflare.com"],
+  "img-src": ["'self'", "https://github.com", "https://avatars.githubusercontent.com"]
 }
 # Disable automatic HTTP->HTTPS redirects for local/dev (gunicorn serving plain HTTP)
 Talisman(app, content_security_policy=CSP, force_https=False)

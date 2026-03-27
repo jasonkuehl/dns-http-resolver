@@ -128,6 +128,11 @@
     <h1>🌍 DNS Propagation Checker</h1>
     <p>Check if DNS changes have propagated across global DNS servers. Query 16+ worldwide resolvers simultaneously.</p>
 
+    <details class="curl-example">
+      <summary>💻 curl example</summary>
+      <pre>curl "http://localhost:60200/api/propagation?domain=example.com&type=A" | jq</pre>
+    </details>
+
     <form id="propagation-form">
       <div class="form-group-inline">
         <label>Domain:</label>

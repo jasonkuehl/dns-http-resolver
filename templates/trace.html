@@ -196,6 +196,11 @@
   <h1>🧭 DNS Trace</h1>
   <p>Enter a domain and click <strong>Trace</strong> to visualize the DNS resolution path from root servers to authoritative nameservers.</p>
 
+  <details class="curl-example">
+    <summary>💻 curl example</summary>
+    <pre>curl "http://localhost:60200/api/trace?domain=example.com" | jq</pre>
+  </details>
+
   <form id="trace-form">
     <div class="form-group-inline">
       <label>Domain:</label>

@@ -1,7 +1,7 @@
 <header class="nav-container">
   <div class="nav-left">
     <a href="/" class="nav-link">
-      <img src="/static/logo.png" class="logo" alt="Logo">
+      <img src="/static/img/logo.png" class="logo" alt="Logo">
       <span>DNS Resolver</span>
     </a>
     <a href="/" class="nav-link"><span>🏠</span>Home</a>
@@ -25,14 +25,10 @@
     <a href="/readme" class="nav-link"><span>📖</span>Docs</a>
   </div>
 
-  <div class="nav-search">
-    <input id="global-search" type="text" placeholder="Search site...">
-  </div>
-
   <div class="nav-right"></div>
 
   <div class="hamburger" onclick="
-    document.querySelectorAll('.nav-left, .nav-search, .nav-right').forEach(el=>
+    document.querySelectorAll('.nav-left, .nav-right').forEach(el=>
       el.classList.toggle('mobile-show')
     );
   ">

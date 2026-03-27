@@ -146,6 +146,11 @@
     <h1>🔒 DNS Security Audit</h1>
     <p>Perform a comprehensive security audit of your domain's DNS configuration. Check for common misconfigurations and vulnerabilities.</p>
 
+    <details class="curl-example">
+      <summary>💻 curl example</summary>
+      <pre>curl "http://localhost:60200/api/security-audit?domain=example.com" | jq</pre>
+    </details>
+
     <div class="audit-description">
       <strong>This audit checks:</strong>
       <ul style="margin: 8px 0 0 20px; color: var(--text-muted);">

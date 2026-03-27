@@ -5,7 +5,6 @@
   <link rel="stylesheet" href="/static/css/style.css">
 
   <style>
-    
     .container {
       max-width: 900px;
       margin: auto;
@@ -14,22 +13,63 @@
       color: #58a6ff;
       margin-top: 1.2em;
     }
-    p {
-      margin: 0.8em 0;
+    p, li {
+      margin: 0.5em 0;
       line-height: 1.6;
     }
-
     .section {
       margin-bottom: 2em;
     }
-    .example {
+    .page-card {
       background: #161b22;
       border: 1px solid #30363d;
-      padding: 12px;
-      border-radius: 6px;
-      margin-top: 10px;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 12px 0;
     }
-
+    .page-card h3 {
+      margin-top: 0;
+    }
+    .page-card code {
+      color: #0af;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .badge-ui   { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb; }
+    .badge-api  { background: #23863633; color: #3fb950; border: 1px solid #238636; }
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: #0af;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .param-table th, .param-table td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid #30363d;
+    }
+    .param-table th {
+      color: #8b949e;
+      font-weight: 600;
+    }
+    .param-table td code {
+      color: #0af;
+    }
   </style>
 </head>
 <body>
@@ -37,198 +77,211 @@
 
 <div class="container">
 
-  <h1>DNS Resolver Documentation</h1>
-
+  <h1>📖 Documentation</h1>
   <p>
-    Welcome to the documentation for your DNS Resolver & Trace web app.
-    This page explains what each part of the application does, how to read the output, and how to use the API.
+    A comprehensive DNS toolkit for resolving, tracing, auditing, and comparing DNS records.
+    Every tool is available through the web UI and a JSON API.
   </p>
 
-  <!-- --- Overview --- -->
+  <!-- --- Pages & Tools --- -->
   <div class="section">
-    <h2>Overview</h2>
-    <p>
-      This application is designed to help you explore DNS resolution,
-      compare results from multiple DNS servers, and understand how a domain name
-      is resolved step‑by‑step from the root servers down to the authoritative servers.
-    </p>
-    <p>
-      You can use the UI to manually enter domains and record types, or you
-      can call the API directly from scripts, CLI tools, or other programs.
-    </p>
-  </div>
+    <h2>Pages &amp; Tools</h2>
 
-  <!-- --- Pages --- -->
-  <div class="section">
-    <h2>Pages & How They Work</h2>
-
-    <h3>Home</h3>
-    <p>
-      This is the starting page of the application. From here you can navigate
-      to the DNS Resolver, DNS Trace, or this documentation page.
-    </p>
-
-    <h3>DNS Resolver (<code>/resolve</code>)</h3>
-    <p>
-      Enter a domain and select a record type (or choose “All”).
-      The app will query multiple configured DNS servers and display the results.
-    </p>
-    <p>
-      The Resolver will:
-      <ul>
-        <li>Compare responses from all DNS servers</li>
-        <li>Show latencies and TTL countdowns</li>
-        <li>Highlight mismatches</li>
-        <li>Show DNSSEC validation statuses (when available)</li>
-      </ul>
-    </p>
-
-    <h3>DNS Trace (<code>/trace</code>)</h3>
-    <p>
-      Shows the DNS resolution path from the root servers to authoritative servers.
-      It displays how each authoritative delegation leads to the next.
-      This is similar in concept to <code>dig +trace</code>, but designed to be
-      easy to read in a browser.
-    </p>
-    <p>
-      Each step shows:
-      <ul>
-        <li><strong>Server:</strong> the IP queried at that level</li>
-        <li><strong>Response Code:</strong> DNS status like <code>NOERROR</code>, <code>NXDOMAIN</code></li>
-        <li><strong>Authority:</strong> nameservers returned</li>
-        <li><strong>Additional:</strong> glue records / IPs returned</li>
-        <li><strong>Answer:</strong> final records if applicable</li>
-      </ul>
-    </p>
-  </div>
-
-  <!-- --- Reading Outputs --- -->
-  <div class="section">
-    <h2>Understanding Output</h2>
-
-    <h3>Resolver Output</h3>
-    <p>
-      When you run a resolve query, you’ll see one section per record type that
-      was returned. Each section contains:
-      <ul>
-        <li><strong>DNS Server:</strong> the resolver IP queried</li>
-        <li><strong>Answers:</strong> the records returned</li>
-        <li><strong>Latency:</strong> how long the server took to respond</li>
-        <li><strong>TTL:</strong> remaining TTL</li>
-        <li><strong>DNSSEC:</strong> validated/unverified — if supported</li>
-      </ul>
-    </p>
-    <div class="example">
-      <h4>Example Resolver Output</h4>
-      <pre>
-{
-  "domain": "example.com",
-  "results": [
-    {
-      "record_type": "A",
-      "dns_servers": ["8.8.8.8"],
-      "answers": ["93.184.216.34"],
-      "latency_ms": 23.41,
-      "ttl_remaining": 3542,
-      "flags": {"aa": false, "ra": true, "rd": true},
-      "dnssec": "validated"
-    },
-    {
-      "record_type": "A",
-      "dns_servers": ["1.1.1.1"],
-      "answers": ["93.184.216.34"],
-      "latency_ms": 29.78,
-      "ttl_remaining": 3540,
-      "flags": {"aa": false, "ra": true, "rd": true},
-      "dnssec": "validated"
-    }
-  ]
-}
-      </pre>
+    <div class="page-card">
+      <h3>🏠 Home <code>/</code> <span class="badge badge-ui">UI</span></h3>
       <p>
-        In this example both servers agree on the <code>A</code> record — same IP,
-        similar TTL and DNSSEC validated status.
+        The landing page. Provides quick navigation to every tool and a live curl preview.
       </p>
     </div>
 
-    <h3>Trace Output</h3>
-    <p>
-      The Trace page shows how DNS resolution travels from the root server,
-      then to the TLD server, and finally to the authoritative server.
-    </p>
-    <p>
-      Each trace step typically includes:
+    <div class="page-card">
+      <h3>🔍 DNS Resolver <code>/resolve</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Query any domain against multiple DNS servers simultaneously.
+        Supports all record types (A, AAAA, MX, NS, TXT, CNAME, SOA, SRV, CAA, PTR, etc.)
+        or choose "All" to query every type at once.
+      </p>
       <ul>
-        <li><strong>Zone:</strong> the portion of the namespace being queried</li>
-        <li><strong>Server:</strong> the IP queried at that step</li>
-        <li><strong>Response Code:</strong> DNS response code (e.g., <code>NOERROR</code>)</li>
-        <li><strong>Answer:</strong> if the server has returned records</li>
-        <li><strong>Authority:</strong> delegation NS records</li>
-        <li><strong>Additional:</strong> glue IPs or related info</li>
+        <li>Compare responses across Google, Cloudflare, Quad9, OpenDNS, and custom servers</li>
+        <li>View latency, TTL countdowns, DNSSEC status, and response flags</li>
+        <li>Filter results in real time</li>
+        <li>Reverse lookup tab — resolve IPs back to hostnames</li>
       </ul>
-    </p>
-    <div class="example">
-      <h4>Example Trace Output</h4>
-      <pre>
-Step 1: Root Server 198.41.0.4
-Response Code: NOERROR
-Authority:
-  com. NS a.gtld-servers.net.
-Additional:
-  192.5.6.30
-Step 2: GTLD Server 192.5.6.30
-Response Code: NOERROR
-Authority:
-  example.com. NS ns1.example.net.
-Additional:
-  203.0.113.5
-Step 3: Authoritative Server 203.0.113.5
-Response Code: NOERROR
-Answer:
-  example.com. A 93.184.216.34
-      </pre>
+      <pre>curl "http://localhost:60200/api/resolve?domain=example.com&amp;type=A" | jq
+curl "http://localhost:60200/api/reverse?ip=8.8.8.8" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to resolve (required)</td></tr>
+        <tr><td><code>type</code></td><td>Record type — A, AAAA, MX, NS, TXT, etc. (default: A)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>🗺️ DNS Trace <code>/trace</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Walk the full DNS resolution path from root servers → TLD → authoritative nameservers.
+        Similar to <code>dig +trace</code> but visualised step-by-step in the browser.
+      </p>
+      <ul>
+        <li>Shows each delegation hop with server IP, response code, authority, and additional records</li>
+        <li>Highlights where the final answer is returned</li>
+      </ul>
+      <pre>curl "http://localhost:60200/api/trace?domain=example.com" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to trace (required)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>📧 Email Security <code>/email-security</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Audit a domain's email authentication setup by checking SPF, DKIM, and DMARC records.
+        Returns the raw records plus a pass/fail assessment for each.
+      </p>
+      <ul>
+        <li><strong>SPF</strong> — validates the TXT record syntax and mechanisms</li>
+        <li><strong>DKIM</strong> — looks up the DKIM selector record (default: <code>default</code>)</li>
+        <li><strong>DMARC</strong> — checks the <code>_dmarc</code> TXT record for policy</li>
+      </ul>
+      <pre>curl "http://localhost:60200/api/email-security?domain=example.com" | jq
+
+# With a specific DKIM selector
+curl "http://localhost:60200/api/email-security?domain=example.com&amp;dkim_selector=google" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to check (required)</td></tr>
+        <tr><td><code>dkim_selector</code></td><td>DKIM selector (optional, default: <code>default</code>)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>🌍 DNS Propagation <code>/propagation</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Check how a DNS record has propagated across major public resolvers worldwide.
+        Useful after making DNS changes to see which servers have picked up the update.
+      </p>
+      <ul>
+        <li>Queries Google, Cloudflare, Quad9, OpenDNS, and more</li>
+        <li>Shows per-server response with latency</li>
+      </ul>
+      <pre>curl "http://localhost:60200/api/propagation?domain=example.com&amp;type=A" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to check (required)</td></tr>
+        <tr><td><code>type</code></td><td>Record type (default: A)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>🛡️ Blacklist Check <code>/blacklist</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Check whether an IP address or domain appears on common DNS-based blacklists (DNSBLs).
+        Supports both IPv4 addresses and domain names.
+      </p>
+      <pre>curl "http://localhost:60200/api/blacklist?target=93.184.216.34" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>target</code></td><td>IP address or domain to check (required)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>🔒 Security Audit <code>/security-audit</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Run a comprehensive DNS security audit on a domain. Checks DNSSEC, CAA records,
+        open resolver exposure, zone transfer vulnerability, and email authentication in one report.
+      </p>
+      <pre>curl "http://localhost:60200/api/security-audit?domain=example.com" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to audit (required)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>📋 Zone Info <code>/zone-info</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Retrieve a detailed breakdown of a domain's DNS zone — SOA, nameservers, mail exchangers,
+        TXT records, and more. A quick snapshot of everything published in DNS for that domain.
+      </p>
+      <pre>curl "http://localhost:60200/api/zone-info?domain=example.com" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to query (required)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>🔎 Subdomain Scanner <code>/subdomain-scan</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Discover subdomains by brute-forcing a wordlist of common names against a domain.
+        Returns any subdomains that resolve successfully.
+      </p>
+      <pre>curl "http://localhost:60200/api/subdomain-scan?domain=example.com" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain</code></td><td>Domain to scan (required)</td></tr>
+      </table>
+    </div>
+
+    <div class="page-card">
+      <h3>⚖️ DNS Diff <code>/dns-diff</code> <span class="badge badge-ui">UI</span> <span class="badge badge-api">API</span></h3>
+      <p>
+        Compare DNS records between two domains, or compare a single domain's records
+        across different DNS servers to spot discrepancies.
+      </p>
+      <pre># Compare across servers
+curl "http://localhost:60200/api/dns-diff?domain1=example.com&amp;type=NS" | jq
+
+# Compare two domains
+curl "http://localhost:60200/api/dns-diff?domain1=google.com&amp;domain2=cloudflare.com&amp;type=MX" | jq</pre>
+      <table class="param-table">
+        <tr><th>Param</th><th>Description</th></tr>
+        <tr><td><code>domain1</code></td><td>First domain (required)</td></tr>
+        <tr><td><code>domain2</code></td><td>Second domain (optional — omit to compare servers)</td></tr>
+        <tr><td><code>type</code></td><td>Record type (default: A)</td></tr>
+      </table>
     </div>
   </div>
 
-  <!-- --- API Usage --- -->
+  <!-- --- Utility Endpoints --- -->
   <div class="section">
-    <h2>API Usage</h2>
-    <p>
-      You can also use the REST API directly from scripts or tools like <code>curl</code>.
-    </p>
+    <h2>Utility Endpoints</h2>
 
-    <h3>Resolver API</h3>
-    <p>
-      Query one record type:
-    </p>
-    <pre>
-curl "http://localhost:60200/api/resolve?domain=example.com&type=A"
-    </pre>
+    <div class="page-card">
+      <h3>❤️ Health Check <code>/health</code> <span class="badge badge-api">API</span></h3>
+      <p>Returns the application status and version. Useful for monitoring and container orchestration.</p>
+      <pre>curl "http://localhost:60200/health" | jq</pre>
+    </div>
 
-    <h3>Trace API</h3>
-    <pre>
-curl "http://localhost:60200/api/trace?domain=example.com"
-    </pre>
+    <div class="page-card">
+      <h3>📡 Server List <code>/api/servers</code> <span class="badge badge-api">API</span></h3>
+      <p>Returns the list of DNS servers the application queries against.</p>
+      <pre>curl "http://localhost:60200/api/servers" | jq</pre>
+    </div>
+
+    <div class="page-card">
+      <h3>🔄 Reverse Lookup <code>/api/reverse</code> <span class="badge badge-api">API</span></h3>
+      <p>Resolve an IP address back to its hostname via PTR record.</p>
+      <pre>curl "http://localhost:60200/api/reverse?ip=8.8.8.8" | jq</pre>
+    </div>
+
+    <div class="page-card">
+      <h3>📊 Compare <code>/api/compare</code> <span class="badge badge-api">API</span></h3>
+      <p>Compare DNS query results side-by-side across servers. Used internally by the resolver page.</p>
+      <pre>curl "http://localhost:60200/api/compare?domain=example.com&amp;type=A" | jq</pre>
+    </div>
   </div>
 
   <!-- --- Deployment --- -->
   <div class="section">
     <h2>Deployment</h2>
-    <p>
-      Quick start with the included run script:
-    </p>
-    <pre>
-./run.sh
-    </pre>
-    <p>
-      Or run with Docker:
-    </p>
-    <pre>
-docker compose up --build
-    </pre>
-    <p>
-      Once running, use the web UI or API endpoints on <code>http://localhost:60200</code>.
-    </p>
+    <p>Quick start with the included run script:</p>
+    <pre>./run.sh</pre>
+    <p>Or run with Docker:</p>
+    <pre>docker compose up --build</pre>
+    <p>The app listens on port <code>60200</code> by default.</p>
   </div>
 
 </div>
