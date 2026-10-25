@@ -61,14 +61,18 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.next.outputs.version }} [skip ci]"
           git push
 
-      - name: Create GitHub Release
+      - name: Create Gitea Release
         if: steps.bump.outputs.type != 'none'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="v${{ steps.next.outputs.version }}"
+          PREVIOUS=$(git describe --tags --abbrev=0 2>/dev/null || true)
           git tag "$VERSION"
           git push origin "$VERSION"
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            --generate-notes
+
+          # Gitea has no --generate-notes, so list the commits since the previous tag
+          NOTES=$(git log --pretty='- %s (%h)' ${PREVIOUS:+"$PREVIOUS"..}HEAD)
+          jq -n --arg tag "$VERSION" --arg body "$NOTES" '{tag_name: $tag, name: $tag, body: $body}' |
+            curl -fsS -X POST "${{ github.api_url }}/repos/${{ github.repository }}/releases" \
+              -H "Authorization: token $TOKEN" -H "Content-Type: application/json" -d @-
