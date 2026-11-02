@@ -18,14 +18,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: https://git.yolo.fail/actions/checkout@v4
+        uses: https://git.yolo.fail/actions/checkout@v7
 
       - name: Read version
         id: version
         run: echo "app_version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Gitea Container Registry
-        uses: https://git.yolo.fail/actions/docker-login-action@v3
+        uses: https://git.yolo.fail/actions/docker-login-action@v4
         with:
           registry: git.yolo.fail
           # Gitea 1.27's registry rejects the job token (it gets no package scope), so log in with a
@@ -34,11 +34,11 @@ jobs:
           password: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: https://git.yolo.fail/actions/docker-setup-buildx-action@v3
+        uses: https://git.yolo.fail/actions/docker-setup-buildx-action@v4
 
       - name: Extract Docker metadata
         id: meta
-        uses: https://git.yolo.fail/actions/docker-metadata-action@v5
+        uses: https://git.yolo.fail/actions/docker-metadata-action@v6
         with:
           images: git.yolo.fail/${{ github.repository_owner }}/dns-resolver
           tags: |
@@ -49,7 +49,7 @@ jobs:
 
       # Build once for scanning (amd64, not pushed); the build-and-push below reuses its cache
       - name: Build image for scanning
-        uses: https://git.yolo.fail/actions/docker-build-push-action@v6
+        uses: https://git.yolo.fail/actions/docker-build-push-action@v7
         with:
           context: .
           build-args: |
@@ -66,7 +66,7 @@ jobs:
           dockerfile: Dockerfile
 
       - name: Build and push
-        uses: https://git.yolo.fail/actions/docker-build-push-action@v5
+        uses: https://git.yolo.fail/actions/docker-build-push-action@v7
         with:
           context: .
           push: true
